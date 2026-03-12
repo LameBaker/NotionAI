@@ -1,7 +1,7 @@
 # Project State
 
 ## Phase
-Planning and scaffolding.
+MVP implementation in progress (Task 1 complete).
 
 ## Completed
 - Agreed architecture for single-bot MVP.
@@ -10,12 +10,20 @@ Planning and scaffolding.
   - root allow policies
   - optional Notion page overrides
 - Created repository planning scaffold.
+- Implemented runtime skeleton for Task 1:
+  - typed policy models in `app/models.py`
+  - YAML config loader with deny-by-default validation in `app/config.py`
+  - config tests in `tests/test_config.py` (passing)
 
 ## Not Started
-- Runtime service implementation.
 - Slack app setup and event handling.
 - Notion ingestion and indexing pipeline.
-- Policy engine and retrieval filtering.
+- ACL policy evaluator.
+- Google OU resolver.
+- Notion metadata parsing.
+- ACL-aware retrieval filtering.
+- Slack response formatting.
+- End-to-end orchestration.
 
 ## Current Risks
 - Need validated list of root page IDs for initial policies.
@@ -24,4 +32,4 @@ Planning and scaffolding.
 ## Next Session Entry Point
 1. Validate Notion root page IDs for `HR` and `Development`.
 2. Finalize `configs/access_policies.yaml` values.
-3. Write implementation plan and begin task 1.
+3. Execute Task 2 (`app/policy.py`, `tests/test_policy.py`) with TDD.
