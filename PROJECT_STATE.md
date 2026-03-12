@@ -1,7 +1,7 @@
 # Project State
 
 ## Phase
-Integration layer implementation in progress (Task 4 complete).
+Integration layer implementation in progress (Task 5 complete).
 
 ## Completed
 - Agreed architecture for single-bot MVP.
@@ -68,6 +68,11 @@ Integration layer implementation in progress (Task 4 complete).
   - added ingestion entrypoint in `app/ingestion.py` that parses raw payloads via `parse_notion_page_metadata`
   - malformed/non-mapping payloads and missing page IDs are skipped safely with deterministic failure records
   - tests in `tests/test_notion_adapter.py` and `tests/test_ingestion.py` (passing)
+- Completed integration Task 5:
+  - added deterministic local flow composer in `app/local_flow.py`
+  - composes Slack runtime boundary and service orchestration without duplicating business logic
+  - validated authorized flow and safe empty-response flow when no authorized chunks remain
+  - tests in `tests/test_local_flow.py` (passing)
 
 ## Not Started
 - Slack app setup and event handling.
@@ -79,6 +84,6 @@ Integration layer implementation in progress (Task 4 complete).
 - Runtime integrations (Slack transport, Notion crawling, production retrieval backend) are still pending.
 
 ## Next Session Entry Point
-1. Execute Task 5 from `docs/plans/2026-03-12-notionai-integration-layer-implementation.md`.
+1. Execute Task 6 from `docs/plans/2026-03-12-notionai-integration-layer-implementation.md`.
 2. Continue integration tasks sequentially with TDD and ACL-safety checks.
 3. Keep runtime wiring transport-adapter-only (no production deployment scope).

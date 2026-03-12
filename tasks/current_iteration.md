@@ -1,7 +1,7 @@
 # Current Iteration
 
 ## Objective
-Execute Task 4 from `docs/plans/2026-03-12-notionai-integration-layer-implementation.md` using TDD.
+Execute Task 5 from `docs/plans/2026-03-12-notionai-integration-layer-implementation.md` using TDD.
 
 ## Tasks
 - [x] Finalize MVP architecture and ACL model.
@@ -24,7 +24,8 @@ Execute Task 4 from `docs/plans/2026-03-12-notionai-integration-layer-implementa
 - [x] Implement Task 2 Slack runtime adapter boundary (`app/slack_runtime.py`, `tests/test_slack_runtime.py`).
 - [x] Implement Task 3 Google adapter boundary (`app/google_adapter.py`, `tests/test_google_adapter.py`).
 - [x] Implement Task 4 Notion adapter and ingestion entrypoint (`app/notion_adapter.py`, `app/ingestion.py`, `tests/test_notion_adapter.py`, `tests/test_ingestion.py`).
+- [x] Implement Task 5 local integration flow (`app/local_flow.py`, `tests/test_local_flow.py`).
 
 ## Exit Criteria
-- Task 4 tests are added and passing.
-- Task 4 Notion adapter and ingestion entrypoint are complete.
+- Task 5 tests are added and passing.
+- Task 5 local integration flow is complete.
