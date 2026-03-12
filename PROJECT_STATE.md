@@ -1,7 +1,7 @@
 # Project State
 
 ## Phase
-MVP implementation slice complete (Tasks 1-8 complete for local logic and docs sync).
+Planning next phase: integration layer over completed MVP core.
 
 ## Completed
 - Agreed architecture for single-bot MVP.
@@ -45,6 +45,9 @@ MVP implementation slice complete (Tasks 1-8 complete for local logic and docs s
   - focused command passes: `tests/test_config.py tests/test_policy.py tests/test_identity.py tests/test_notion_source.py tests/test_retrieval.py tests/test_slack_adapter.py tests/test_service.py`
   - full suite passes: `pytest -v`
   - architecture, decisions, and iteration/state docs refreshed
+- Created next-phase integration plan:
+  - `docs/plans/2026-03-12-notionai-integration-layer-implementation.md`
+  - task-by-task TDD sequence for Slack runtime, Google adapter, Notion adapter/ingestion, config/env, local flow, and failure handling
 
 ## Not Started
 - Slack app setup and event handling.
@@ -56,6 +59,6 @@ MVP implementation slice complete (Tasks 1-8 complete for local logic and docs s
 - Runtime integrations (Slack transport, Notion crawling, production retrieval backend) are still pending.
 
 ## Next Session Entry Point
-1. Validate Notion root page IDs for `HR` and `Development`.
-2. Finalize `configs/access_policies.yaml` values.
-3. Start runtime integration scope (outside Task 1-8 local logic).
+1. Execute Task 1 from `docs/plans/2026-03-12-notionai-integration-layer-implementation.md`.
+2. Continue integration tasks sequentially with TDD and ACL-safety checks.
+3. Keep runtime wiring transport-adapter-only (no production deployment scope).

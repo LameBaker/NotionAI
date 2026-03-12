@@ -1,7 +1,7 @@
 # Current Iteration
 
 ## Objective
-Execute Task 8 docs/final verification sync from `docs/plans/2026-03-12-notionai-mvp-implementation.md`.
+Prepare execution-ready integration layer plan based on the completed MVP core.
 
 ## Tasks
 - [x] Finalize MVP architecture and ACL model.
@@ -19,7 +19,8 @@ Execute Task 8 docs/final verification sync from `docs/plans/2026-03-12-notionai
 - [x] Run Task 8 focused verification command.
 - [x] Run Task 8 full test suite.
 - [x] Sync docs/state (`docs/architecture.md`, `DECISIONS.md`, `tasks/current_iteration.md`, `PROJECT_STATE.md`).
+- [x] Create integration layer implementation plan (`docs/plans/2026-03-12-notionai-integration-layer-implementation.md`).
 
 ## Exit Criteria
-- Task 8 verification commands pass.
-- Task 8 docs/state sync is complete.
+- Integration implementation plan exists under `docs/plans/`.
+- `PROJECT_STATE.md` points next execution to the integration plan.
