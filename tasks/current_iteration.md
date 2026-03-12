@@ -1,7 +1,7 @@
 # Current Iteration
 
 ## Objective
-Prepare execution-ready integration layer plan based on the completed MVP core.
+Execute Task 1 from `docs/plans/2026-03-12-notionai-integration-layer-implementation.md` using TDD.
 
 ## Tasks
 - [x] Finalize MVP architecture and ACL model.
@@ -20,7 +20,8 @@ Prepare execution-ready integration layer plan based on the completed MVP core.
 - [x] Run Task 8 full test suite.
 - [x] Sync docs/state (`docs/architecture.md`, `DECISIONS.md`, `tasks/current_iteration.md`, `PROJECT_STATE.md`).
 - [x] Create integration layer implementation plan (`docs/plans/2026-03-12-notionai-integration-layer-implementation.md`).
+- [x] Implement Task 1 integration config/env loader (`app/integration_config.py`, `tests/test_integration_config.py`).
 
 ## Exit Criteria
-- Integration implementation plan exists under `docs/plans/`.
-- `PROJECT_STATE.md` points next execution to the integration plan.
+- Task 1 tests are added and passing.
+- Task 1 integration config implementation is complete.
