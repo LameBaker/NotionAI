@@ -1,7 +1,7 @@
 # Project State
 
 ## Phase
-MVP implementation in progress (Task 6 complete).
+MVP implementation in progress (Task 7 complete).
 
 ## Completed
 - Agreed architecture for single-bot MVP.
@@ -36,11 +36,15 @@ MVP implementation in progress (Task 6 complete).
   - output includes answer text and safe source metadata only
   - unsafe/raw fields are dropped from source items
   - tests in `tests/test_slack_adapter.py` (passing)
+- Implemented service orchestration for Task 7:
+  - dependency-injected orchestrator in `app/service.py`
+  - wired identity resolution, ACL evaluation, retrieval filtering/context assembly, and response formatting
+  - returns safe empty response shape when no authorized chunks remain
+  - tests in `tests/test_service.py` (passing)
 
 ## Not Started
 - Slack app setup and event handling.
 - Notion ingestion and indexing pipeline.
-- End-to-end orchestration.
 
 ## Current Risks
 - Need validated list of root page IDs for initial policies.
@@ -49,4 +53,4 @@ MVP implementation in progress (Task 6 complete).
 ## Next Session Entry Point
 1. Validate Notion root page IDs for `HR` and `Development`.
 2. Finalize `configs/access_policies.yaml` values.
-3. Execute Task 7 (`app/service.py`, `tests/test_service.py`) with TDD.
+3. Execute Task 8 docs/final verification sync.
