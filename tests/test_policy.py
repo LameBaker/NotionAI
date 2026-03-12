@@ -89,3 +89,16 @@ def test_acl_allow_expands_access_when_not_restricted() -> None:
         )
         is True
     )
+
+
+def test_blank_allow_ou_values_do_not_grant_global_access() -> None:
+    root = _root_policy(allow_ou=["   "], allow_users=[])
+
+    assert (
+        evaluate_page_access(
+            user_email="user@company.com",
+            user_ou="/Sales",
+            root_policy=root,
+        )
+        is False
+    )

@@ -39,6 +39,8 @@ def _matches_ou(user_ou: str, allowed_ou_prefixes: list[str]) -> bool:
     normalized_user_ou = _normalize_ou_path(user_ou)
 
     for raw_prefix in allowed_ou_prefixes:
+        if not raw_prefix.strip():
+            continue
         prefix = _normalize_ou_path(raw_prefix)
         if prefix == "/":
             return True
