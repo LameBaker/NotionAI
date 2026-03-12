@@ -1,7 +1,7 @@
 # Current Iteration
 
 ## Objective
-Execute Task 7 from `docs/plans/2026-03-12-notionai-mvp-implementation.md` using TDD.
+Execute Task 8 docs/final verification sync from `docs/plans/2026-03-12-notionai-mvp-implementation.md`.
 
 ## Tasks
 - [x] Finalize MVP architecture and ACL model.
@@ -16,7 +16,10 @@ Execute Task 7 from `docs/plans/2026-03-12-notionai-mvp-implementation.md` using
 - [x] Implement Task 5 ACL-aware retrieval filtering (`app/retrieval.py`, `tests/test_retrieval.py`).
 - [x] Implement Task 6 Slack response formatting (`app/slack_adapter.py`, `tests/test_slack_adapter.py`).
 - [x] Implement Task 7 service orchestration (`app/service.py`, `tests/test_service.py`).
+- [x] Run Task 8 focused verification command.
+- [x] Run Task 8 full test suite.
+- [x] Sync docs/state (`docs/architecture.md`, `DECISIONS.md`, `tasks/current_iteration.md`, `PROJECT_STATE.md`).
 
 ## Exit Criteria
-- Task 7 tests are added and passing.
-- Task 7 implementation is complete.
+- Task 8 verification commands pass.
+- Task 8 docs/state sync is complete.

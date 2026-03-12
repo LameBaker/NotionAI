@@ -1,7 +1,7 @@
 # Project State
 
 ## Phase
-MVP implementation in progress (Task 7 complete).
+MVP implementation slice complete (Tasks 1-8 complete for local logic and docs sync).
 
 ## Completed
 - Agreed architecture for single-bot MVP.
@@ -41,6 +41,10 @@ MVP implementation in progress (Task 7 complete).
   - wired identity resolution, ACL evaluation, retrieval filtering/context assembly, and response formatting
   - returns safe empty response shape when no authorized chunks remain
   - tests in `tests/test_service.py` (passing)
+- Completed Task 8 verification and sync:
+  - focused command passes: `tests/test_config.py tests/test_policy.py tests/test_identity.py tests/test_notion_source.py tests/test_retrieval.py tests/test_slack_adapter.py tests/test_service.py`
+  - full suite passes: `pytest -v`
+  - architecture, decisions, and iteration/state docs refreshed
 
 ## Not Started
 - Slack app setup and event handling.
@@ -49,8 +53,9 @@ MVP implementation in progress (Task 7 complete).
 ## Current Risks
 - Need validated list of root page IDs for initial policies.
 - Need Google OU path verification against real user set.
+- Runtime integrations (Slack transport, Notion crawling, production retrieval backend) are still pending.
 
 ## Next Session Entry Point
 1. Validate Notion root page IDs for `HR` and `Development`.
 2. Finalize `configs/access_policies.yaml` values.
-3. Execute Task 8 docs/final verification sync.
+3. Start runtime integration scope (outside Task 1-8 local logic).

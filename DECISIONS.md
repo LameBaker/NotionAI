@@ -16,3 +16,12 @@ Use root policies in YAML and page-level Notion tags for local overrides.
 
 ### D-005: Pilot Roots
 Pilot with `HR` and `Development` roots.
+
+### D-006: In-Memory-First Retrieval Contract
+Use a minimal in-memory retrieval chunk model during MVP implementation to validate ACL filtering behavior before adding a vector DB.
+
+### D-007: Transport-Agnostic Slack Formatting
+Keep Slack response formatting SDK-free and return a simple payload contract so message transport can be added later without changing core logic.
+
+### D-008: Service Orchestration by Dependency Injection
+Wire identity, policy, retrieval, and formatter through injected collaborators for deterministic unit tests and minimal runtime coupling.
