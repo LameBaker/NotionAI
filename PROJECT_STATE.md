@@ -1,7 +1,7 @@
 # Project State
 
 ## Phase
-Integration layer implementation in progress (Task 2 complete).
+Integration layer implementation in progress (Task 3 complete).
 
 ## Completed
 - Agreed architecture for single-bot MVP.
@@ -58,6 +58,11 @@ Integration layer implementation in progress (Task 2 complete).
   - converts Slack-like events to service request shape and service response to Slack-sendable payload
   - explicitly rejects malformed and unsupported events
   - tests in `tests/test_slack_runtime.py` (passing)
+- Completed integration Task 3:
+  - added thin Google Admin adapter boundary in `app/google_adapter.py`
+  - maps SDK-like user payload to identity directory contract
+  - returns `None` for user-not-found and maps transient client failures to `GoogleAdapterError`
+  - tests in `tests/test_google_adapter.py` (passing)
 
 ## Not Started
 - Slack app setup and event handling.
@@ -69,6 +74,6 @@ Integration layer implementation in progress (Task 2 complete).
 - Runtime integrations (Slack transport, Notion crawling, production retrieval backend) are still pending.
 
 ## Next Session Entry Point
-1. Execute Task 3 from `docs/plans/2026-03-12-notionai-integration-layer-implementation.md`.
+1. Execute Task 4 from `docs/plans/2026-03-12-notionai-integration-layer-implementation.md`.
 2. Continue integration tasks sequentially with TDD and ACL-safety checks.
 3. Keep runtime wiring transport-adapter-only (no production deployment scope).
