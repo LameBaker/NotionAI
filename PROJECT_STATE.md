@@ -1,7 +1,7 @@
 # Project State
 
 ## Phase
-Integration layer slice complete (Tasks 1-7 complete for adapter boundaries and local flow).
+External connectivity spike planning for runtime-wiring readiness.
 
 ## Completed
 - Agreed architecture for single-bot MVP.
@@ -83,6 +83,9 @@ Integration layer slice complete (Tasks 1-7 complete for adapter boundaries and 
     `tests/test_integration_config.py tests/test_slack_runtime.py tests/test_google_adapter.py tests/test_notion_adapter.py tests/test_ingestion.py tests/test_local_flow.py tests/test_integration_failures.py`
   - full test suite passes: `pytest -v`
   - architecture and decisions synced to integration layer state
+- Created external connectivity spike plan:
+  - `docs/plans/2026-03-12-notionai-external-connectivity-spike.md`
+  - defines read-only Google/Notion validation steps and required artifacts for contract verification
 
 ## Not Started
 - Slack app setup and event handling.
@@ -94,6 +97,6 @@ Integration layer slice complete (Tasks 1-7 complete for adapter boundaries and 
 - Runtime integrations (Slack transport, Notion crawling, production retrieval backend) are still pending.
 
 ## Next Session Entry Point
-1. Start runtime wiring scope (Slack event loop and real SDK clients) on top of existing adapter contracts.
-2. Keep ACL filtering guarantees explicit before context assembly.
-3. Continue to defer production deployment/infrastructure automation scope.
+1. Execute spike Task 1 from `docs/plans/2026-03-12-notionai-external-connectivity-spike.md`.
+2. Run Google and Notion connectivity checks and collect required artifacts.
+3. Publish mismatch triage and go/no-go recommendation before runtime wiring.

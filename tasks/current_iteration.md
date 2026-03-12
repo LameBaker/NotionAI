@@ -1,7 +1,7 @@
 # Current Iteration
 
 ## Objective
-Execute Task 7 final verification and docs sync from `docs/plans/2026-03-12-notionai-integration-layer-implementation.md`.
+Prepare and execute an external connectivity spike to validate Google/Notion real-world assumptions before runtime wiring.
 
 ## Tasks
 - [x] Finalize MVP architecture and ACL model.
@@ -29,7 +29,14 @@ Execute Task 7 final verification and docs sync from `docs/plans/2026-03-12-noti
 - [x] Run Task 7 focused integration verification command.
 - [x] Run Task 7 full test suite.
 - [x] Sync docs/state (`docs/architecture.md`, `DECISIONS.md`, `tasks/current_iteration.md`, `PROJECT_STATE.md`).
+- [x] Create external connectivity spike plan (`docs/plans/2026-03-12-notionai-external-connectivity-spike.md`).
+- [ ] Execute spike Task 1 (contract fixtures/tests + notes scaffold).
+- [ ] Execute spike Task 2 (Google connectivity + OU verification artifacts).
+- [ ] Execute spike Task 3 (Notion root ID/payload verification artifacts).
+- [ ] Execute spike Task 4 (mismatch triage + go/no-go summary).
 
 ## Exit Criteria
-- Task 7 verification commands pass.
-- Task 7 docs/state sync is complete.
+- Verified OU examples are captured.
+- Verified Notion root page IDs are captured.
+- Sanitized payload samples and contract mismatches are documented.
+- Go/no-go recommendation for runtime wiring is documented.
