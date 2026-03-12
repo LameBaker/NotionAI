@@ -1,7 +1,7 @@
 # Current Iteration
 
 ## Objective
-Execute Task 1 from `docs/plans/2026-03-12-notionai-integration-layer-implementation.md` using TDD.
+Execute Task 2 from `docs/plans/2026-03-12-notionai-integration-layer-implementation.md` using TDD.
 
 ## Tasks
 - [x] Finalize MVP architecture and ACL model.
@@ -21,7 +21,8 @@ Execute Task 1 from `docs/plans/2026-03-12-notionai-integration-layer-implementa
 - [x] Sync docs/state (`docs/architecture.md`, `DECISIONS.md`, `tasks/current_iteration.md`, `PROJECT_STATE.md`).
 - [x] Create integration layer implementation plan (`docs/plans/2026-03-12-notionai-integration-layer-implementation.md`).
 - [x] Implement Task 1 integration config/env loader (`app/integration_config.py`, `tests/test_integration_config.py`).
+- [x] Implement Task 2 Slack runtime adapter boundary (`app/slack_runtime.py`, `tests/test_slack_runtime.py`).
 
 ## Exit Criteria
-- Task 1 tests are added and passing.
-- Task 1 integration config implementation is complete.
+- Task 2 tests are added and passing.
+- Task 2 runtime adapter boundary is complete.

@@ -1,7 +1,7 @@
 # Project State
 
 ## Phase
-Integration layer implementation in progress (Task 1 complete).
+Integration layer implementation in progress (Task 2 complete).
 
 ## Completed
 - Agreed architecture for single-bot MVP.
@@ -53,6 +53,11 @@ Integration layer implementation in progress (Task 1 complete).
   - explicit required env validation outside local mode
   - safe minimal local-mode defaults (empty tokens/ids)
   - tests in `tests/test_integration_config.py` (passing)
+- Completed integration Task 2:
+  - added SDK-free Slack runtime boundary in `app/slack_runtime.py`
+  - converts Slack-like events to service request shape and service response to Slack-sendable payload
+  - explicitly rejects malformed and unsupported events
+  - tests in `tests/test_slack_runtime.py` (passing)
 
 ## Not Started
 - Slack app setup and event handling.
@@ -64,6 +69,6 @@ Integration layer implementation in progress (Task 1 complete).
 - Runtime integrations (Slack transport, Notion crawling, production retrieval backend) are still pending.
 
 ## Next Session Entry Point
-1. Execute Task 2 from `docs/plans/2026-03-12-notionai-integration-layer-implementation.md`.
+1. Execute Task 3 from `docs/plans/2026-03-12-notionai-integration-layer-implementation.md`.
 2. Continue integration tasks sequentially with TDD and ACL-safety checks.
 3. Keep runtime wiring transport-adapter-only (no production deployment scope).
