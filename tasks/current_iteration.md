@@ -1,7 +1,7 @@
 # Current Iteration
 
 ## Objective
-Execute Task 3 from `docs/plans/2026-03-12-notionai-mvp-implementation.md` using TDD.
+Execute Task 4 from `docs/plans/2026-03-12-notionai-mvp-implementation.md` using TDD.
 
 ## Tasks
 - [x] Finalize MVP architecture and ACL model.
@@ -12,7 +12,8 @@ Execute Task 3 from `docs/plans/2026-03-12-notionai-mvp-implementation.md` using
 - [x] Implement Task 1 runtime skeleton (`app/__init__.py`, `app/config.py`, `app/models.py`, `tests/test_config.py`).
 - [x] Implement Task 2 ACL policy evaluator (`app/policy.py`, `tests/test_policy.py`).
 - [x] Implement Task 3 Google OU resolver (`app/identity.py`, `tests/test_identity.py`).
+- [x] Implement Task 4 Notion metadata parsing (`app/notion_source.py`, `tests/test_notion_source.py`).
 
 ## Exit Criteria
-- Task 3 tests are added and passing.
-- Task 3 implementation is complete.
+- Task 4 tests are added and passing.
+- Task 4 implementation is complete.
