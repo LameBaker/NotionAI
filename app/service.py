@@ -52,7 +52,16 @@ class NotionAIService:
         allowed_page_ids = {
             page_id
             for page_id, root_policy in root_policies_by_page_id.items()
-            if evaluate_page_access(user_email=user_email, user_ou=user_ou, root_policy=root_policy)
+            if evaluate_page_access(
+                user_email=user_email,
+                user_ou=user_ou,
+                root_policy=root_policy,
+                acl_restricted=_acl_restricted_for_page(source_metadata_by_page_id.get(page_id, {})),
+                acl_allow_ou=_acl_list_for_page(source_metadata_by_page_id.get(page_id, {}), "acl_allow_ou"),
+                acl_allow_users=_acl_list_for_page(
+                    source_metadata_by_page_id.get(page_id, {}), "acl_allow_users"
+                ),
+            )
         }
 
         authorized_chunks = filter_authorized_chunks(raw_results, allowed_page_ids=allowed_page_ids)
@@ -76,3 +85,19 @@ class NotionAIService:
         ]
 
         return format_answer_response(answer_text, sources)
+
+
+def _acl_restricted_for_page(metadata: dict) -> bool:
+    value = metadata.get("acl_restricted", False)
+    if isinstance(value, bool):
+        return value
+    return str(value).strip().lower() == "true"
+
+
+def _acl_list_for_page(metadata: dict, key: str) -> list[str]:
+    value = metadata.get(key, [])
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if str(item).strip()]
+    if isinstance(value, str):
+        return [part.strip() for part in value.split(",") if part.strip()]
+    return []
