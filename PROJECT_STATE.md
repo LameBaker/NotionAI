@@ -1,7 +1,7 @@
 # Project State
 
 ## Phase
-MVP implementation in progress (Task 5 complete).
+MVP implementation in progress (Task 6 complete).
 
 ## Completed
 - Agreed architecture for single-bot MVP.
@@ -31,11 +31,15 @@ MVP implementation in progress (Task 5 complete).
   - deterministic filtering by allowed page ids before context assembly
   - explicit deny-by-default behavior when allowed set is empty
   - tests in `tests/test_retrieval.py` (passing)
+- Implemented Slack response formatting for Task 6:
+  - transport-agnostic formatter in `app/slack_adapter.py`
+  - output includes answer text and safe source metadata only
+  - unsafe/raw fields are dropped from source items
+  - tests in `tests/test_slack_adapter.py` (passing)
 
 ## Not Started
 - Slack app setup and event handling.
 - Notion ingestion and indexing pipeline.
-- Slack response formatting.
 - End-to-end orchestration.
 
 ## Current Risks
@@ -45,4 +49,4 @@ MVP implementation in progress (Task 5 complete).
 ## Next Session Entry Point
 1. Validate Notion root page IDs for `HR` and `Development`.
 2. Finalize `configs/access_policies.yaml` values.
-3. Execute Task 6 (`app/slack_adapter.py`, `tests/test_slack_adapter.py`) with TDD.
+3. Execute Task 7 (`app/service.py`, `tests/test_service.py`) with TDD.
