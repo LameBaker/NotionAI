@@ -1,0 +1,14 @@
+default: deny_all
+
+roots:
+  - name: HR
+    page_id: "REPLACE_WITH_HR_PAGE_ID"
+    allow_ou:
+      - "/"
+    allow_users: []
+
+  - name: Development
+    page_id: "REPLACE_WITH_DEVELOPMENT_PAGE_ID"
+    allow_ou:
+      - "/Development"
+    allow_users: []
