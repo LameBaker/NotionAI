@@ -14,11 +14,13 @@ MVP implementation in progress (Task 1 complete).
   - typed policy models in `app/models.py`
   - YAML config loader with deny-by-default validation in `app/config.py`
   - config tests in `tests/test_config.py` (passing)
+- Implemented ACL policy evaluator for Task 2:
+  - deterministic allow/deny evaluation in `app/policy.py`
+  - policy behavior tests in `tests/test_policy.py` (passing)
 
 ## Not Started
 - Slack app setup and event handling.
 - Notion ingestion and indexing pipeline.
-- ACL policy evaluator.
 - Google OU resolver.
 - Notion metadata parsing.
 - ACL-aware retrieval filtering.
@@ -32,4 +34,4 @@ MVP implementation in progress (Task 1 complete).
 ## Next Session Entry Point
 1. Validate Notion root page IDs for `HR` and `Development`.
 2. Finalize `configs/access_policies.yaml` values.
-3. Execute Task 2 (`app/policy.py`, `tests/test_policy.py`) with TDD.
+3. Execute Task 3 (`app/identity.py`, `tests/test_identity.py`) with TDD.
