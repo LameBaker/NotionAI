@@ -1,7 +1,7 @@
 # Project State
 
 ## Phase
-MVP implementation in progress (Task 4 complete).
+MVP implementation in progress (Task 5 complete).
 
 ## Completed
 - Agreed architecture for single-bot MVP.
@@ -26,11 +26,15 @@ MVP implementation in progress (Task 4 complete).
   - extracted MVP fields: page id, parent linkage, title, path, last edited time, and ACL tags
   - safe ACL defaults when properties are absent
   - tests in `tests/test_notion_source.py` (passing)
+- Implemented ACL-aware retrieval filtering for Task 5:
+  - in-memory chunk model in `app/retrieval.py`
+  - deterministic filtering by allowed page ids before context assembly
+  - explicit deny-by-default behavior when allowed set is empty
+  - tests in `tests/test_retrieval.py` (passing)
 
 ## Not Started
 - Slack app setup and event handling.
 - Notion ingestion and indexing pipeline.
-- ACL-aware retrieval filtering.
 - Slack response formatting.
 - End-to-end orchestration.
 
@@ -41,4 +45,4 @@ MVP implementation in progress (Task 4 complete).
 ## Next Session Entry Point
 1. Validate Notion root page IDs for `HR` and `Development`.
 2. Finalize `configs/access_policies.yaml` values.
-3. Execute Task 5 (`app/retrieval.py`, `tests/test_retrieval.py`) with TDD.
+3. Execute Task 6 (`app/slack_adapter.py`, `tests/test_slack_adapter.py`) with TDD.
