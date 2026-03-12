@@ -29,3 +29,7 @@ def build_slack_payload_from_service_response(service_response: dict) -> dict:
         "text": str(service_response.get("answer_text", "")),
         "sources": service_response.get("sources", []),
     }
+
+
+def build_safe_empty_payload() -> dict:
+    return {"text": "", "sources": []}

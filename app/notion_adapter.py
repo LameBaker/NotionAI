@@ -17,9 +17,10 @@ class NotionApiAdapter:
         self._client = client
 
     def fetch_page_payloads(self, root_page_id: str) -> list[object]:
+        transient_errors = (TimeoutError, ConnectionError)
         try:
             payloads = self._client.fetch_pages(root_page_id)
-        except (TimeoutError, ConnectionError) as exc:
+        except transient_errors as exc:
             raise NotionAdapterError("Transient Notion client failure") from exc
 
         if payloads is None:

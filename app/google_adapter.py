@@ -17,9 +17,10 @@ class GoogleAdminDirectoryAdapter:
         self._client = client
 
     def get_user_by_email(self, email: str) -> dict[str, str] | None:
+        transient_errors = (TimeoutError, ConnectionError)
         try:
             payload = self._client.get_user(email)
-        except (TimeoutError, ConnectionError) as exc:
+        except transient_errors as exc:
             raise GoogleAdapterError("Transient Google directory client failure") from exc
 
         if payload is None:
