@@ -7,6 +7,12 @@
 - Retriever Filter (`app/retrieval.py`): filters chunks by authorized page IDs before context assembly.
 - Slack Response Adapter (`app/slack_adapter.py`): transport-agnostic response formatter with safe source metadata fields only.
 - Service Orchestrator (`app/service.py`): dependency-injected flow that wires identity, policy, retrieval, and formatter.
+- Integration Config Loader (`app/integration_config.py`): env-only integration config parsing and explicit required validation.
+- Slack Runtime Boundary (`app/slack_runtime.py`): converts Slack-like events to service request shape and service response to Slack-sendable payload.
+- Google Adapter Boundary (`app/google_adapter.py`): maps Google Admin SDK-like payloads to identity directory contract and maps transient failures.
+- Notion Adapter Boundary (`app/notion_adapter.py`): fetches raw page-like payloads from injected Notion-like client and maps transient failures.
+- Ingestion Entrypoint (`app/ingestion.py`): parses raw page payloads into metadata and records deterministic parse failures.
+- Local Flow Composer (`app/local_flow.py`): deterministic SDK-free local end-to-end composition of runtime boundary and service.
 
 ## Security Invariant
 Unauthorized content must never enter prompt context.
@@ -18,6 +24,11 @@ Unauthorized content must never enter prompt context.
 4. Filter retrieval results to authorized chunks only.
 5. Assemble answer context from authorized chunks only.
 6. Format response with safe source metadata (`title`, `path`, `last_edited_time`, `page_id`).
+
+## Adapter Failure Handling
+- Slack malformed/unsupported events are converted to safe empty payload in local flow.
+- Google and Notion transient boundary failures are mapped to explicit adapter errors.
+- Local flow returns safe empty payload for adapter-boundary failures to avoid leakage.
 
 ## Current Implementation Gaps
 - No runtime/server wiring yet (Slack events, background workers, deployment).

@@ -1,7 +1,7 @@
 # Project State
 
 ## Phase
-Integration layer implementation in progress (Task 6 complete).
+Integration layer slice complete (Tasks 1-7 complete for adapter boundaries and local flow).
 
 ## Completed
 - Agreed architecture for single-bot MVP.
@@ -78,6 +78,11 @@ Integration layer implementation in progress (Task 6 complete).
   - validated explicit transient error mapping in Google and Notion adapter boundaries
   - added local-flow safe fallback to empty payload for malformed Slack events and adapter-boundary failures
   - tests in `tests/test_integration_failures.py` (passing)
+- Completed integration Task 7 verification and sync:
+  - focused integration command passes:
+    `tests/test_integration_config.py tests/test_slack_runtime.py tests/test_google_adapter.py tests/test_notion_adapter.py tests/test_ingestion.py tests/test_local_flow.py tests/test_integration_failures.py`
+  - full test suite passes: `pytest -v`
+  - architecture and decisions synced to integration layer state
 
 ## Not Started
 - Slack app setup and event handling.
@@ -89,6 +94,6 @@ Integration layer implementation in progress (Task 6 complete).
 - Runtime integrations (Slack transport, Notion crawling, production retrieval backend) are still pending.
 
 ## Next Session Entry Point
-1. Execute Task 7 from `docs/plans/2026-03-12-notionai-integration-layer-implementation.md`.
-2. Continue integration tasks sequentially with TDD and ACL-safety checks.
-3. Keep runtime wiring transport-adapter-only (no production deployment scope).
+1. Start runtime wiring scope (Slack event loop and real SDK clients) on top of existing adapter contracts.
+2. Keep ACL filtering guarantees explicit before context assembly.
+3. Continue to defer production deployment/infrastructure automation scope.

@@ -1,7 +1,7 @@
 # Current Iteration
 
 ## Objective
-Execute Task 6 from `docs/plans/2026-03-12-notionai-integration-layer-implementation.md` using TDD.
+Execute Task 7 final verification and docs sync from `docs/plans/2026-03-12-notionai-integration-layer-implementation.md`.
 
 ## Tasks
 - [x] Finalize MVP architecture and ACL model.
@@ -26,7 +26,10 @@ Execute Task 6 from `docs/plans/2026-03-12-notionai-integration-layer-implementa
 - [x] Implement Task 4 Notion adapter and ingestion entrypoint (`app/notion_adapter.py`, `app/ingestion.py`, `tests/test_notion_adapter.py`, `tests/test_ingestion.py`).
 - [x] Implement Task 5 local integration flow (`app/local_flow.py`, `tests/test_local_flow.py`).
 - [x] Implement Task 6 adapter failure handling (`tests/test_integration_failures.py`, updates to adapter boundaries/local flow).
+- [x] Run Task 7 focused integration verification command.
+- [x] Run Task 7 full test suite.
+- [x] Sync docs/state (`docs/architecture.md`, `DECISIONS.md`, `tasks/current_iteration.md`, `PROJECT_STATE.md`).
 
 ## Exit Criteria
-- Task 6 tests are added and passing.
-- Task 6 failure handling safeguards are complete.
+- Task 7 verification commands pass.
+- Task 7 docs/state sync is complete.

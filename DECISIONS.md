@@ -25,3 +25,12 @@ Keep Slack response formatting SDK-free and return a simple payload contract so 
 
 ### D-008: Service Orchestration by Dependency Injection
 Wire identity, policy, retrieval, and formatter through injected collaborators for deterministic unit tests and minimal runtime coupling.
+
+### D-009: SDK-Free Adapter Boundaries in Integration Phase
+Implement Slack/Google/Notion boundaries as thin adapter layers over injected client interfaces before adding real SDK/runtime wiring.
+
+### D-010: Deterministic Ingestion Failure Recording
+Ingestion entrypoint must skip malformed payloads safely and return deterministic failure records for testable behavior.
+
+### D-011: Safe Empty Local Flow Fallback
+Local flow converts malformed Slack input and adapter-boundary failures to an explicit safe empty payload shape.
