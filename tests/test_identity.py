@@ -45,3 +45,16 @@ def test_resolve_org_unit_by_email_rejects_non_corporate_email() -> None:
         resolver.resolve_org_unit_by_email("user@gmail.com")
 
     assert client.calls == []
+
+
+def test_resolve_org_unit_by_email_returns_none_when_org_unit_path_missing_or_blank() -> None:
+    client = FakeDirectoryClient(
+        {
+            "missing@company.com": {"primaryEmail": "missing@company.com"},
+            "blank@company.com": {"primaryEmail": "blank@company.com", "orgUnitPath": "   "},
+        }
+    )
+    resolver = GoogleDirectoryIdentityResolver(client=client, corporate_domain="company.com")
+
+    assert resolver.resolve_org_unit_by_email("missing@company.com") is None
+    assert resolver.resolve_org_unit_by_email("blank@company.com") is None

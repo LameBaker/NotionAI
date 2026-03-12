@@ -26,16 +26,19 @@ class GoogleDirectoryIdentityResolver:
         if user is None:
             return None
 
-        return _normalize_ou_path(user.get("orgUnitPath", ""))
+        return _normalize_ou_path(user.get("orgUnitPath"))
 
     def _is_corporate_email(self, email: str) -> bool:
         return email.endswith(f"@{self._corporate_domain}")
 
 
-def _normalize_ou_path(path: str) -> str:
+def _normalize_ou_path(path: object) -> str | None:
+    if not isinstance(path, str):
+        return None
+
     value = path.strip()
     if not value:
-        return "/"
+        return None
 
     if not value.startswith("/"):
         value = "/" + value

@@ -61,3 +61,19 @@ def test_parse_notion_page_metadata_defaults_acl_values_when_absent() -> None:
     assert metadata.acl_restricted is False
     assert metadata.acl_allow_ou == []
     assert metadata.acl_allow_users == []
+
+
+def test_parse_notion_page_metadata_acl_restricted_string_false_is_not_truthy() -> None:
+    payload = {
+        "id": "page-900",
+        "parent": {"type": "page_id", "page_id": "parent-900"},
+        "last_edited_time": "2026-03-12T14:00:00.000Z",
+        "properties": {
+            "Title": {"type": "title", "title": [{"plain_text": "Policy"}]},
+            "acl_restricted": {"type": "formula", "value": "false"},
+        },
+    }
+
+    metadata = parse_notion_page_metadata(payload)
+
+    assert metadata.acl_restricted is False

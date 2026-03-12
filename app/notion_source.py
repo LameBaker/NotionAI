@@ -80,7 +80,7 @@ def _extract_acl_restricted(raw_value: object) -> bool:
         if "checkbox" in raw_value:
             return bool(raw_value.get("checkbox"))
         if "value" in raw_value:
-            return bool(raw_value.get("value"))
+            return _to_bool(raw_value.get("value"))
 
     return False
 
@@ -142,3 +142,18 @@ def _split_csv_like(raw_text: str) -> list[str]:
         if value:
             parts.append(value)
     return parts
+
+
+def _to_bool(value: object) -> bool:
+    if isinstance(value, bool):
+        return value
+
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized in {"true", "1", "yes"}:
+            return True
+        if normalized in {"false", "0", "no", ""}:
+            return False
+        return False
+
+    return bool(value)
