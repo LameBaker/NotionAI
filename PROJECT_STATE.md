@@ -1,7 +1,7 @@
 # Project State
 
 ## Phase
-MVP implementation in progress (Task 1 complete).
+MVP implementation in progress (Task 3 complete).
 
 ## Completed
 - Agreed architecture for single-bot MVP.
@@ -17,11 +17,14 @@ MVP implementation in progress (Task 1 complete).
 - Implemented ACL policy evaluator for Task 2:
   - deterministic allow/deny evaluation in `app/policy.py`
   - policy behavior tests in `tests/test_policy.py` (passing)
+- Implemented Google OU resolver for Task 3:
+  - client-agnostic resolver interface in `app/identity.py`
+  - org unit path normalization and corporate-email-only lookup
+  - identity tests in `tests/test_identity.py` (passing)
 
 ## Not Started
 - Slack app setup and event handling.
 - Notion ingestion and indexing pipeline.
-- Google OU resolver.
 - Notion metadata parsing.
 - ACL-aware retrieval filtering.
 - Slack response formatting.
@@ -34,4 +37,4 @@ MVP implementation in progress (Task 1 complete).
 ## Next Session Entry Point
 1. Validate Notion root page IDs for `HR` and `Development`.
 2. Finalize `configs/access_policies.yaml` values.
-3. Execute Task 3 (`app/identity.py`, `tests/test_identity.py`) with TDD.
+3. Execute Task 4 (`app/notion_source.py`, `tests/test_notion_source.py`) with TDD.
