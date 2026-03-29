@@ -1,36 +1,36 @@
 # Project State
 
 ## Phase
-External connectivity spike — валидация реальных данных Google/Notion перед runtime wiring.
+MVP bot working — first end-to-end test passed.
 
 ## What's Done
-- Бизнес-логика (7 модулей): config, models, policy, identity, notion_source, retrieval, slack_adapter, service
-- Интеграционные адаптеры (6 модулей): integration_config, slack_runtime, google_adapter, notion_adapter, ingestion, local_flow
-- Обработка ошибок адаптеров
-- 47 тестов проходят (`pytest -v`)
-- Spike Task 1: contract baseline тесты
-- Spike Task 2: Google Directory check — `o.nikitin@overgear.com` → `/Development` (работает)
-- Spike Task 3: Notion root IDs подтверждены:
-  - HR: `6fc13a2a-a763-441c-8a99-a6c3fabe9a2b`
-  - Development: `81c090a3-eb85-44e5-bae3-c0f16e8d0cea`
+- Бизнес-логика (7 модулей) + интеграционные адаптеры (6 модулей)
+- 57 тестов проходят (`pytest -v`)
+- Spike complete: Google Directory + Notion root IDs verified
+- **MVP bot working:**
+  - Slack Socket Mode (DM-only)
+  - Google Directory → OU resolution
+  - ChromaDB vector search (390 chunks indexed from HR + Development)
+  - ACL filtering by root_id
+  - Claude Haiku answer generation
+  - First successful answer in Slack (2026-03-29)
 
-## Current Sprint: Spike Tasks
-- [x] Task 1: contract baseline fixtures/tests
-- [x] Task 2: Google Directory connectivity + OU verification
-- [x] Task 3: Notion root ID/payload verification
-- [x] Task 4: mismatch triage + go/no-go → **GO**
-
-## Not Started
-- Slack app setup and event handling
-- Notion ingestion and indexing pipeline
-- Vector DB / retrieval backend
-- LLM integration (Claude API)
-- Deployment / infrastructure
+## Known Issues (next session)
+- Crawler не раскрывает toggle/callout/column блоки — теряется контент внутри них
+- Embeddings (default mini-LM) плохо работают с русским — ищет не самые релевантные чанки
+- Только 2 root'а в конфиге (HR, Development) — нужно добавить остальные 15
+- Нет логирования — непонятно что бот ищет и фильтрует
 
 ## Backlog
-- P1: Notion ingestion pipeline. ACL-aware retrieval. Slack message handling.
-- P2: Audit logs. Operator runbook for ACL tags in Notion.
+- P0: Fix crawler nested blocks. Improve Russian embeddings. Add remaining roots.
+- P1: Logging/observability. Incremental sync (by last_edited_time).
+- P2: Audit logs. Operator runbook. Docker/deployment.
 
-## Risks
-- ACL tag properties (`acl_restricted`, `acl_allow_ou`, `acl_allow_users`) not yet created in Notion — warning, not blocker for MVP
-- Runtime integrations (Slack transport, Notion crawling, production retrieval) are pending
+## How to Run
+```bash
+# Sync Notion → ChromaDB
+.venv/bin/python sync.py
+
+# Start bot
+.venv/bin/python main.py
+```
