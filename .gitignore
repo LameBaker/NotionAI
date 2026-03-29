@@ -5,3 +5,4 @@ __pycache__/
 mcp/
 credentials/
 .env
+.chroma_data/

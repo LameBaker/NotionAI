@@ -8,7 +8,7 @@ from app.env import EnvConfig
 from app.google_client import RealGoogleDirectoryClient
 from app.identity import GoogleDirectoryIdentityResolver
 from app.llm import ClaudeAnswerGenerator
-from app.service import NotionAIService
+from app.policy import evaluate_page_access
 from app.vector_store import ChromaVectorStore
 
 
@@ -16,7 +16,7 @@ def create_bot(env: EnvConfig) -> tuple[App, SocketModeHandler]:
     app = App(token=env.slack_bot_token)
 
     config = load_access_policy_config("configs/access_policies.yaml")
-    root_policies_by_page_id = {root.page_id: root for root in config.roots}
+    root_policies = {root.page_id: root for root in config.roots}
 
     google_client = RealGoogleDirectoryClient(
         credentials_path=env.google_credentials_path,
@@ -28,12 +28,6 @@ def create_bot(env: EnvConfig) -> tuple[App, SocketModeHandler]:
     )
     vector_store = ChromaVectorStore(persist_dir=".chroma_data")
     answer_generator = ClaudeAnswerGenerator(api_key=env.anthropic_api_key)
-
-    service = NotionAIService(
-        identity_resolver=identity_resolver,
-        retriever=vector_store,
-        answer_generator=answer_generator,
-    )
 
     @app.event("message")
     def handle_dm(event, say, client):
@@ -55,29 +49,46 @@ def create_bot(env: EnvConfig) -> tuple[App, SocketModeHandler]:
             return
 
         try:
-            result = service.answer_question(
+            user_ou = identity_resolver.resolve_org_unit_by_email(user_email)
+        except Exception:
+            user_ou = None
+
+        if not user_ou:
+            say("Не удалось определить ваш отдел. Обратитесь к администратору.")
+            return
+
+        # Find which roots this user can access
+        allowed_root_ids = set()
+        for root_page_id, policy in root_policies.items():
+            if evaluate_page_access(
                 user_email=user_email,
-                question=question,
-                root_policies_by_page_id=root_policies_by_page_id,
-                source_metadata_by_page_id={},
-            )
+                user_ou=user_ou,
+                root_policy=policy,
+            ):
+                allowed_root_ids.add(root_page_id)
+
+        if not allowed_root_ids:
+            say("У вас нет доступа к данным. Обратитесь к администратору.")
+            return
+
+        # Search and filter by allowed roots
+        raw_chunks = vector_store.search(question, n_results=10)
+        authorized_chunks = [c for c in raw_chunks if c.root_id in allowed_root_ids]
+
+        if not authorized_chunks:
+            say("К сожалению, я не нашёл релевантную информацию по вашему вопросу.")
+            return
+
+        # Build context from authorized chunks only
+        context = "\n\n".join(c.text for c in authorized_chunks[:5])
+
+        try:
+            answer = answer_generator(question, context)
         except Exception as exc:
-            say(f"Произошла ошибка: {exc}")
+            say(f"Ошибка при генерации ответа: {exc}")
             return
 
-        answer = result.get("answer_text", "")
-        if not answer:
-            say("К сожалению, я не нашёл информацию по вашему вопросу или у вас нет доступа к релевантным данным.")
-            return
-
-        sources = result.get("sources", [])
-        source_text = ""
-        if sources:
-            source_lines = [f"• {s.get('title', 'Untitled')}" for s in sources if s.get("title")]
-            if source_lines:
-                source_text = "\n\n Источники:\n" + "\n".join(source_lines)
-
-        say(f"{answer}{source_text}")
+        say(answer)
 
     handler = SocketModeHandler(app, env.slack_app_token)
     return app, handler

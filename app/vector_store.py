@@ -39,6 +39,7 @@ class ChromaVectorStore:
                     page_id=meta["page_id"],
                     chunk_id=doc_id,
                     text=results["documents"][0][i],
+                    root_id=meta.get("root_id", ""),
                 )
             )
         return chunks

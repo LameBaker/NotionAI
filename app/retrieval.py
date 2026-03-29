@@ -8,6 +8,7 @@ class RetrievalChunk:
     page_id: str
     chunk_id: str
     text: str
+    root_id: str = ""
 
 
 def filter_authorized_chunks(
