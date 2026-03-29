@@ -19,21 +19,39 @@ def load_access_policy_config(path: Path | str) -> AccessPolicyConfig:
     if default != "deny_all":
         raise ValueError("Access policy default must be 'deny_all'")
 
+    groups = _parse_groups(payload.get("groups", {}))
+
     raw_roots = payload.get("roots", [])
     if not isinstance(raw_roots, list):
         raise ValueError("roots must be a list")
 
-    roots = [_build_root_policy(item) for item in raw_roots]
+    roots = [_build_root_policy(item, groups) for item in raw_roots]
     return AccessPolicyConfig(default=default, roots=roots)
 
 
-def _build_root_policy(payload: Any) -> RootAccessPolicy:
+def _parse_groups(raw_groups: Any) -> dict[str, list[str]]:
+    if not isinstance(raw_groups, dict):
+        return {}
+    groups: dict[str, list[str]] = {}
+    for name, values in raw_groups.items():
+        if isinstance(values, list):
+            groups[str(name)] = [str(v) for v in values]
+    return groups
+
+
+def _build_root_policy(payload: Any, groups: dict[str, list[str]]) -> RootAccessPolicy:
     if not isinstance(payload, dict):
         raise ValueError("root entry must be a mapping")
 
     name = str(payload.get("name", "")).strip()
     page_id = str(payload.get("page_id", "")).strip()
-    allow_ou = payload.get("allow_ou", [])
+
+    allow_ou_group = str(payload.get("allow_ou_group", "")).strip()
+    if allow_ou_group and allow_ou_group in groups:
+        allow_ou = list(groups[allow_ou_group])
+    else:
+        allow_ou = payload.get("allow_ou", [])
+
     allow_users = payload.get("allow_users", [])
 
     if not name or not page_id:

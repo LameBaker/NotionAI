@@ -1,14 +1,26 @@
 default: deny_all
 
+groups:
+  all_internal:
+    - "/Boosting Supply"
+    - "/Currency supply"
+    - "/Customer Care & Support"
+    - "/Development"
+    - "/Game performance"
+    - "/Management"
+    - "/Product"
+    - "/Sales"
+    - "/Service"
+
 roots:
   - name: HR
-    page_id: "REPLACE_WITH_HR_PAGE_ID"
-    allow_ou:
-      - "/"
+    page_id: "6fc13a2a-a763-441c-8a99-a6c3fabe9a2b"
+    allow_ou_group: all_internal
     allow_users: []
 
   - name: Development
-    page_id: "REPLACE_WITH_DEVELOPMENT_PAGE_ID"
+    page_id: "81c090a3-eb85-44e5-bae3-c0f16e8d0cea"
     allow_ou:
       - "/Development"
+      - "/Product"
     allow_users: []
