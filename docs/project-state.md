@@ -18,7 +18,7 @@ External connectivity spike — валидация реальных данных
 - [x] Task 1: contract baseline fixtures/tests
 - [x] Task 2: Google Directory connectivity + OU verification
 - [x] Task 3: Notion root ID/payload verification
-- [ ] Task 4: mismatch triage + go/no-go recommendation
+- [x] Task 4: mismatch triage + go/no-go → **GO**
 
 ## Not Started
 - Slack app setup and event handling
