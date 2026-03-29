@@ -22,31 +22,50 @@
 - This baseline is used to detect contract drift when real Google/Notion payload checks begin in later spike tasks.
 - No production module behavior changed in Task 1.
 
-## Pending for Later Spike Tasks
-- Real Google OU samples (email -> `orgUnitPath`) validation.
-- Real Notion pilot root IDs (`HR`, `Development`) validation.
-- Mismatch capture versus current adapter/parser contracts.
+## Task 2 Execution (Google Directory Read-Only Check) — COMPLETE
 
-## Task 2 Execution (Google Directory Read-Only Check)
-
-### Script added
+### Script
 - `scripts/spike/check_google_directory.py`
-- Behavior:
-  - read-only Google Directory user lookup using readonly scope
-  - input: `--emails ...` plus delegated admin subject and service account credentials path
-  - output: sanitized JSON lines only (`primaryEmail`, `orgUnitPath`, `status`)
 
-### Manual run attempt
-- Command:
-  - `.venv/bin/python scripts/spike/check_google_directory.py --emails engineer@example.com`
-- Result:
-  - failed before API call with credential precondition error
-  - exact blocker: `ERROR: missing credentials file (set --credentials-file or GOOGLE_APPLICATION_CREDENTIALS)`
+### Verified result (2026-03-29)
+```json
+{"orgUnitPath": "/Development", "primaryEmail": "o.nikitin@overgear.com", "status": "ok"}
+```
 
-### Current blocker status
-- Google credential material and/or environment wiring is unavailable in this session.
-- Because credentials are unavailable, real Google OU validation did not run and no real user payload samples were collected yet.
+### Credentials used
+- SA: `credentials/service-account.json` (copied from RWSSO project)
+- Admin subject: `no-reply-svc@overgear.com`
+- Scope: `admin.directory.user.readonly` via Domain-Wide Delegation
 
-## Advisory Checklist Status
-- The latest admin preparation checklist (Google service account/delegation setup, pilot OU validation inputs, Notion root validation inputs) has not been completed yet.
-- Next execution attempt should start only after credentials and pilot inputs are prepared.
+### Contract compatibility
+- `primaryEmail` and `orgUnitPath` fields present — matches `app/google_adapter.py` contract
+- `orgUnitPath` format `/Development` — matches `app/identity.py` normalization logic
+- No mismatches found
+
+## Task 3 Execution (Notion Root ID Validation) — COMPLETE
+
+### Verified root page IDs (2026-03-29)
+
+| Root | Page ID | Verified |
+|------|---------|----------|
+| HR | `6fc13a2a-a763-441c-8a99-a6c3fabe9a2b` | Top-level page, contains HR content (вакансии, гайды, процессы) |
+| Development | `81c090a3-eb85-44e5-bae3-c0f16e8d0cea` | Top-level page, contains dev content (roadmaps, standards, teams) |
+
+### Payload shape observations
+- Pages have `properties` with `title` field
+- Parent linkage: both are top-level (empty ancestor-path)
+- Child pages linked via `<page url="...">` blocks
+- No ACL tags (`acl_restricted`, `acl_allow_ou`, `acl_allow_users`) observed on root pages — these will need to be added as Notion page properties for per-page overrides
+- Database entries (e.g. Infrastructure) appear as `<database>` blocks with `data-source-url`
+
+### Contract compatibility notes
+- `id` field present — matches contract
+- `properties.title` present — matches `app/notion_source.py` parser
+- `parent` linkage model differs: Notion API uses `parent.page_id`, but root pages have no parent — handled correctly by parser defaults
+- ACL property fields not yet created in Notion — need to add these properties to pages that require per-page overrides (not a blocker for MVP, root-level policies cover pilot)
+- `last_edited_time` available in metadata — matches contract
+
+### Mismatch: no ACL properties yet
+- **Severity: warning** (not blocker)
+- Root-level YAML policies handle pilot access (HR=all, Development=/Development OU)
+- Per-page ACL overrides (`acl_restricted`, `acl_allow_ou`, `acl_allow_users`) need to be created as Notion properties later, when page-level exceptions are needed
