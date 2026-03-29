@@ -34,3 +34,29 @@ Ingestion entrypoint must skip malformed payloads safely and return deterministi
 
 ### D-011: Safe Empty Local Flow Fallback
 Local flow converts malformed Slack input and adapter-boundary failures to an explicit safe empty payload shape.
+
+## 2026-03-29
+
+### D-012: ChromaDB as MVP Vector Store
+Use ChromaDB (embedded, local storage) for MVP. Zero infrastructure — runs in-process, data in local directory. Sufficient for pilot scale (~50 users, ~200 pages). **DevOps note:** перед production-деплоем оценить замену на managed решение (Qdrant Cloud, pgvector, etc.) в зависимости от нагрузки и требований к persistence.
+
+### D-013: Claude Haiku as Default LLM
+Use Claude API (Haiku model) as default LLM for answer generation. Abstraction layer позволяет заменить на другой LLM. Cost: ~$0.25/1M input tokens, ~$5-15/month at pilot scale.
+
+### D-014: Local-First Development
+MVP разрабатывается и тестируется локально (python main.py). После валидации — передаётся DevOps для деплоя. Без Docker/serverless на этапе MVP.
+
+### D-015: Cron-Based Notion Sync
+Notion crawl по расписанию (раз в 30-60 мин). Задержка приемлема для корпоративной wiki. **Future improvement:** перейти на Notion webhooks (event-driven sync) когда API выйдет из беты — уменьшит задержку и нагрузку.
+
+### D-016: Slack Socket Mode
+Используем Socket Mode (WebSocket) — не нужен публичный URL, работает за NAT, проще деплой. **DevOps note:** при необходимости можно переключить на HTTP Events API, если потребуется балансировка или multiple instances.
+
+### D-017: Allow-Only ACL (no deny rules)
+Только явный allow, без deny-правил. Как в AD best practice — если OU нет в allow-списке, доступа нет. Outsource/Outstaff не добавляются в allow = заблокированы автоматически. Это проще аудитить и отлаживать.
+
+### D-018: OU Groups in Config (alias reuse)
+Конфиг поддерживает именованные группы OU (`groups.all_internal`) для переиспользования. 15 из 17 spaces доступны всем внутренним — ссылаются на одну группу вместо дублирования списка.
+
+### D-019: DM-Only Bot for MVP
+Бот отвечает только в личных сообщениях (DM). Ответ видит только тот кто спросил — безопасно для ACL. **Future improvement:** добавить @mention в каналах (ответ в треде), но требует предварительной проработки: ответ в публичном канале виден всем, а права у пользователей разные — нужна стратегия (отвечать только на "общедоступные" данные? или отправлять ACL-ответ в DM вместо канала?).
