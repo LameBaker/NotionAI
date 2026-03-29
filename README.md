@@ -2,38 +2,45 @@
 
 Slack Q&A assistant over Notion with OU-based access control.
 
+## Problem
+
+Notion costs are high because many users only read content. Goal: keep writers in Notion, deliver read access through Slack Q&A bot with ACL filtering based on Google Workspace OU.
+
 ## Current Status
-- Core domain and integration boundary layers are implemented and covered by tests.
-- External connectivity spike is in progress:
-  - Spike Task 1 completed (placeholder contract baseline + notes).
-  - Spike Task 2 started and blocked (Google credentials not configured in session).
-- Admin preparation checklist from the latest advisory message is not yet completed (credentials and pilot IDs still pending).
+
+- Core domain and integration boundary layers implemented (47 tests passing).
+- External connectivity spike in progress — validating real Google/Notion data before runtime wiring.
+- Spike Task 2 ready to execute (Google Directory check).
+
+## Quick Start
+
+```bash
+# Setup
+python -m venv .venv
+.venv/bin/pip install -r requirements.txt  # when added
+
+# Run tests
+pytest -v
+```
+
+## Architecture
+
+See `docs/architecture.md` for component details.
+
+**Security invariant:** Unauthorized content must never enter LLM prompt context.
+
+**Access evaluation order:**
+1. Resolve user email and OU from Google Directory
+2. Evaluate page access from root policy + page-level overrides
+3. Filter retrieval results to authorized chunks only
+4. Assemble answer context from authorized chunks only
 
 ## Key Docs
-- Execution rules: `EXECUTION_RULES.md`
-- Design: `docs/plans/2026-03-12-notion-slack-qa-design.md`
-- MVP implementation plan: `docs/plans/2026-03-12-notionai-mvp-implementation.md`
-- Integration layer plan: `docs/plans/2026-03-12-notionai-integration-layer-implementation.md`
-- External connectivity spike plan: `docs/plans/2026-03-12-notionai-external-connectivity-spike.md`
-- Spike notes: `docs/spike/2026-03-12-external-connectivity-notes.md`
-- Architecture: `docs/architecture.md`
-- Project context: `PROJECT_CONTEXT.md`
-- Project state: `PROJECT_STATE.md`
-- Task tracking: `tasks/backlog.md`, `tasks/current_iteration.md`
 
-## What Is Implemented
-- ACL core: config loading, OU/user policy evaluation, deny-by-default behavior.
-- Parsing and ingestion primitives: Notion metadata parser, ingestion entrypoint, deterministic failure capture.
-- Retrieval safety: authorized chunk filtering before context assembly.
-- Formatting/orchestration: transport-agnostic response formatter, service orchestration, local flow boundary.
-- Integration boundaries: Slack runtime boundary, Google adapter, Notion adapter, integration config loader.
-- Failure-handling safeguards for malformed events and transient adapter errors.
-
-## Test Status
-- Last recorded full run: `45 passed` (`.venv/bin/pytest -v`) during integration Task 7.
-
-## Next Practical Steps
-- Provide Google credentials and delegation inputs for spike scripts.
-- Validate real Google OU outputs for pilot users.
-- Validate real Notion root page IDs for `HR` and `Development`.
-- Complete spike mismatch triage and go/no-go decision before runtime wiring.
+- `CLAUDE.md` — project instructions and session context
+- `DECISIONS.md` — architectural decisions log
+- `PROJECT_STATE.md` — current project state
+- `ROADMAP.md` — development roadmap
+- `docs/architecture.md` — component architecture
+- `docs/plans/` — iteration plans
+- `tasks/` — iteration tracking
