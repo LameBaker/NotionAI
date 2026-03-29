@@ -11,7 +11,7 @@ Slack-бот, который отвечает на вопросы сотрудн
 - Deny-by-default: если нет явного разрешения — доступ запрещён
 - Неавторизованный контент НИКОГДА не попадает в контекст LLM
 - Одна задача за раз, минимальные изменения
-- После каждой задачи обновлять `PROJECT_STATE.md` и `tasks/current_iteration.md`
+- После каждой задачи обновлять `docs/project-state.md` и `tasks/current_iteration.md`
 - Preserve deny-by-default ACL behavior
 - Corporate email — канонический идентификатор для `acl_allow_users`
 
@@ -22,7 +22,7 @@ Slack-бот, который отвечает на вопросы сотрудн
 - Корпоративный email — уникальный идентификатор пользователя
 - YAML-политики + page-level Notion-теги для переопределений
 - Адаптеры без SDK (тонкие границы для тестируемости)
-- Решения фиксируются в `DECISIONS.md`
+- Решения фиксируются в `docs/decisions.md`
 
 ## Текущее состояние
 
@@ -65,11 +65,11 @@ docs/
   architecture.md       # Архитектура компонентов
   plans/                # Планы итераций
   spike/                # Spike notes
+  decisions.md          # Архитектурные решения
+  project-state.md      # Текущее состояние проекта
+  roadmap.md            # Дорожная карта
 configs/                # YAML policy configs
 tasks/                  # Итерации и бэклог
-DECISIONS.md            # Архитектурные решения
-PROJECT_STATE.md        # Текущее состояние проекта
-ROADMAP.md              # Дорожная карта
 ```
 
 ## Команды
@@ -93,7 +93,7 @@ GOOGLE_SPIKE_ADMIN_SUBJECT=no-reply-svc@overgear.com \
 ## Что читать при старте сессии
 
 1. Этот файл
-2. `PROJECT_STATE.md` — текущее состояние
+2. `docs/project-state.md` — текущее состояние
 3. `tasks/current_iteration.md` — задачи итерации
 4. `docs/plans/2026-03-12-notionai-external-connectivity-spike.md` — план спайка
 5. `docs/spike/2026-03-12-external-connectivity-notes.md` — заметки спайка

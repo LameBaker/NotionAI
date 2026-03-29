@@ -37,10 +37,9 @@ See `docs/architecture.md` for component details.
 
 ## Key Docs
 
-- `CLAUDE.md` — project instructions and session context
-- `DECISIONS.md` — architectural decisions log
-- `PROJECT_STATE.md` — current project state
-- `ROADMAP.md` — development roadmap
 - `docs/architecture.md` — component architecture
+- `docs/decisions.md` — architectural decisions log
+- `docs/project-state.md` — current project state
+- `docs/roadmap.md` — development roadmap
 - `docs/plans/` — iteration plans
 - `tasks/` — iteration tracking
