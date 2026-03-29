@@ -11,7 +11,7 @@ Slack-бот, который отвечает на вопросы сотрудн
 - Deny-by-default: если нет явного разрешения — доступ запрещён
 - Неавторизованный контент НИКОГДА не попадает в контекст LLM
 - Одна задача за раз, минимальные изменения
-- После каждой задачи обновлять `docs/project-state.md` и `tasks/current_iteration.md`
+- После каждой задачи обновлять `docs/project-state.md`
 - Preserve deny-by-default ACL behavior
 - Corporate email — канонический идентификатор для `acl_allow_users`
 
@@ -69,7 +69,6 @@ docs/
   project-state.md      # Текущее состояние проекта
   roadmap.md            # Дорожная карта
 configs/                # YAML policy configs
-tasks/                  # Итерации и бэклог
 ```
 
 ## Команды
@@ -94,9 +93,8 @@ GOOGLE_SPIKE_ADMIN_SUBJECT=no-reply-svc@overgear.com \
 
 1. Этот файл
 2. `docs/project-state.md` — текущее состояние
-3. `tasks/current_iteration.md` — задачи итерации
-4. `docs/plans/2026-03-12-notionai-external-connectivity-spike.md` — план спайка
-5. `docs/spike/2026-03-12-external-connectivity-notes.md` — заметки спайка
+3. `docs/plans/2026-03-12-notionai-external-connectivity-spike.md` — план спайка
+4. `docs/spike/2026-03-12-external-connectivity-notes.md` — заметки спайка
 
 ## Контекст проекта Overgear
 

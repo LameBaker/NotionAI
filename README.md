@@ -42,4 +42,3 @@ See `docs/architecture.md` for component details.
 - `docs/project-state.md` — current project state
 - `docs/roadmap.md` — development roadmap
 - `docs/plans/` — iteration plans
-- `tasks/` — iteration tracking
