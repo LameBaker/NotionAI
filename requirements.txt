@@ -1,0 +1,10 @@
+slack-bolt>=1.18,<2
+slack-sdk>=3.27,<4
+anthropic>=0.39,<1
+chromadb>=0.5,<1
+notion-client>=2.2,<3
+google-api-python-client>=2.100,<3
+google-auth>=2.20,<3
+python-dotenv>=1.0,<2
+pyyaml>=6.0,<7
+pytest>=8.0,<10
