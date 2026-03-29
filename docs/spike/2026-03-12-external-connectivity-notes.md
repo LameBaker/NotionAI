@@ -26,3 +26,27 @@
 - Real Google OU samples (email -> `orgUnitPath`) validation.
 - Real Notion pilot root IDs (`HR`, `Development`) validation.
 - Mismatch capture versus current adapter/parser contracts.
+
+## Task 2 Execution (Google Directory Read-Only Check)
+
+### Script added
+- `scripts/spike/check_google_directory.py`
+- Behavior:
+  - read-only Google Directory user lookup using readonly scope
+  - input: `--emails ...` plus delegated admin subject and service account credentials path
+  - output: sanitized JSON lines only (`primaryEmail`, `orgUnitPath`, `status`)
+
+### Manual run attempt
+- Command:
+  - `.venv/bin/python scripts/spike/check_google_directory.py --emails engineer@example.com`
+- Result:
+  - failed before API call with credential precondition error
+  - exact blocker: `ERROR: missing credentials file (set --credentials-file or GOOGLE_APPLICATION_CREDENTIALS)`
+
+### Current blocker status
+- Google credential material and/or environment wiring is unavailable in this session.
+- Because credentials are unavailable, real Google OU validation did not run and no real user payload samples were collected yet.
+
+## Advisory Checklist Status
+- The latest admin preparation checklist (Google service account/delegation setup, pilot OU validation inputs, Notion root validation inputs) has not been completed yet.
+- Next execution attempt should start only after credentials and pilot inputs are prepared.

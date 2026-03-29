@@ -1,7 +1,7 @@
 # Project State
 
 ## Phase
-External connectivity spike planning for runtime-wiring readiness.
+External connectivity spike execution (Task 1 complete, Task 2 blocked by missing credentials).
 
 ## Completed
 - Agreed architecture for single-bot MVP.
@@ -86,17 +86,29 @@ External connectivity spike planning for runtime-wiring readiness.
 - Created external connectivity spike plan:
   - `docs/plans/2026-03-12-notionai-external-connectivity-spike.md`
   - defines read-only Google/Notion validation steps and required artifacts for contract verification
+- Completed spike Task 1:
+  - added placeholder contract baseline tests in `tests/spike/test_external_payload_contracts.py`
+  - created spike notes in `docs/spike/2026-03-12-external-connectivity-notes.md`
+  - baseline assumptions now captured explicitly for Google/Notion payload shapes
+- Started spike Task 2 and created script:
+  - added read-only script `scripts/spike/check_google_directory.py`
+  - execution blocked before API calls due to missing credential configuration
+  - blocker captured in spike notes
 
 ## Not Started
+- Spike Task 3: Notion root ID/payload validation against real API data.
+- Spike Task 4: mismatch triage and go/no-go recommendation.
 - Slack app setup and event handling.
 - Notion ingestion and indexing pipeline.
 
 ## Current Risks
 - Need validated list of root page IDs for initial policies.
 - Need Google OU path verification against real user set.
+- Google credential/delegation setup for read-only directory checks is incomplete in this environment.
+- Admin preparation checklist from the latest advisory step has not been executed yet.
 - Runtime integrations (Slack transport, Notion crawling, production retrieval backend) are still pending.
 
 ## Next Session Entry Point
-1. Execute spike Task 1 from `docs/plans/2026-03-12-notionai-external-connectivity-spike.md`.
-2. Run Google and Notion connectivity checks and collect required artifacts.
-3. Publish mismatch triage and go/no-go recommendation before runtime wiring.
+1. Finish Google spike Task 2 after providing credentials/delegation inputs.
+2. Execute spike Task 3 for Notion root ID and payload validation.
+3. Execute spike Task 4 mismatch triage and publish go/no-go recommendation before runtime wiring.

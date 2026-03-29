@@ -30,8 +30,8 @@ Prepare and execute an external connectivity spike to validate Google/Notion rea
 - [x] Run Task 7 full test suite.
 - [x] Sync docs/state (`docs/architecture.md`, `DECISIONS.md`, `tasks/current_iteration.md`, `PROJECT_STATE.md`).
 - [x] Create external connectivity spike plan (`docs/plans/2026-03-12-notionai-external-connectivity-spike.md`).
-- [ ] Execute spike Task 1 (contract fixtures/tests + notes scaffold).
-- [ ] Execute spike Task 2 (Google connectivity + OU verification artifacts).
+- [x] Execute spike Task 1 (contract fixtures/tests + notes scaffold).
+- [ ] Execute spike Task 2 (Google connectivity + OU verification artifacts) - in progress, blocked by missing credentials/delegation inputs.
 - [ ] Execute spike Task 3 (Notion root ID/payload verification artifacts).
 - [ ] Execute spike Task 4 (mismatch triage + go/no-go summary).
 
