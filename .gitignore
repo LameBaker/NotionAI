@@ -6,3 +6,6 @@ mcp/
 credentials/
 .env
 .chroma_data/
+.DS_Store
+docs/rights/
+docs/Google OU/
