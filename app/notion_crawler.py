@@ -28,11 +28,15 @@ def chunk_text(text: str, max_chunk_size: int = 1000) -> list[str]:
 def crawl_root(client: NotionClient, root_page_id: str) -> list[dict]:
     """Recursively fetch all pages under a root. Returns list of {page_id, title, text}."""
     pages: list[dict] = []
-    _crawl_recursive(client, root_page_id, pages)
+    visited: set[str] = set()
+    _crawl_recursive(client, root_page_id, pages, visited)
     return pages
 
 
-def _crawl_recursive(client: NotionClient, page_id: str, pages: list[dict]) -> None:
+def _crawl_recursive(client: NotionClient, page_id: str, pages: list[dict], visited: set[str]) -> None:
+    if page_id in visited:
+        return
+    visited.add(page_id)
     page = _retry_api_call(lambda: client.pages.retrieve(page_id))
     if page is None:
         return
@@ -52,7 +56,7 @@ def _crawl_recursive(client: NotionClient, page_id: str, pages: list[dict]) -> N
         pages.append({"page_id": page_id, "title": title, "text": text, "last_edited_time": last_edited})
 
     for child_id in child_page_ids:
-        _crawl_recursive(client, child_id, pages)
+        _crawl_recursive(client, child_id, pages, visited)
 
 
 def _process_blocks(
