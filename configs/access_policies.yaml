@@ -24,3 +24,59 @@ roots:
       - "/Development"
       - "/Product"
     allow_users: []
+
+  - name: Marketing
+    page_id: "a8f96f12-c497-4044-9011-576c63b3dc49"
+    allow_ou_group: all_internal
+    allow_users: []
+
+  - name: Content
+    page_id: "0d649d1a-7221-4f89-95fa-b1943d571f5b"
+    allow_ou_group: all_internal
+    allow_users: []
+
+  - name: Gameleads
+    page_id: "8f8f18df-97c0-4289-ad89-f4cc1dcf012f"
+    allow_ou_group: all_internal
+    allow_users: []
+
+  - name: Sales
+    page_id: "003eca6a-356d-4db7-9925-86d8181bdc7a"
+    allow_ou_group: all_internal
+    allow_users: []
+
+  - name: Customer Care
+    page_id: "a120e567-2a36-46b6-8a0f-f7e35fa6f757"
+    allow_ou_group: all_internal
+    allow_users: []
+
+  - name: Green Team
+    page_id: "b1ffe8de-aad4-491a-b166-29a75ef9d992"
+    allow_ou_group: all_internal
+    allow_users: []
+
+  - name: Currency Supply
+    page_id: "9b22b45b-cee5-4b4a-ba08-9cf60aaac5eb"
+    allow_ou:
+      - "/Currency supply"
+    allow_users: []
+
+  - name: Operations
+    page_id: "24b38e26-2e6c-4fe5-915d-098979a02c14"
+    allow_ou_group: all_internal
+    allow_users: []
+
+  - name: Knowledge Base
+    page_id: "65126094-37ba-4725-befc-8c2d473ab455"
+    allow_ou_group: all_internal
+    allow_users: []
+
+  - name: Business processes
+    page_id: "ab86f8b6-d866-431e-ae0a-569f00f3ff2a"
+    allow_ou_group: all_internal
+    allow_users: []
+
+  - name: Salesforce
+    page_id: "f7164ce8-634a-4b7d-b036-d0d8652fe53c"
+    allow_ou_group: all_internal
+    allow_users: []

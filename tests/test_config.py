@@ -12,7 +12,7 @@ def test_load_access_policy_config_from_repo_file() -> None:
     config = load_access_policy_config(CONFIG_PATH)
 
     assert config.default == "deny_all"
-    assert len(config.roots) == 2
+    assert len(config.roots) == 13
     assert config.roots[0].name == "HR"
     assert "/Development" in config.roots[0].allow_ou  # resolved from group
     assert config.roots[1].name == "Development"
