@@ -1,8 +1,12 @@
 from __future__ import annotations
 
 import chromadb
+from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
 
 from app.retrieval import RetrievalChunk
+
+# Multilingual model — works well with Russian text
+EMBEDDING_MODEL = "paraphrase-multilingual-MiniLM-L12-v2"
 
 
 class ChromaVectorStore:
@@ -10,9 +14,11 @@ class ChromaVectorStore:
 
     def __init__(self, *, persist_dir: str = ".chroma_data") -> None:
         self._client = chromadb.PersistentClient(path=persist_dir)
+        self._ef = SentenceTransformerEmbeddingFunction(model_name=EMBEDDING_MODEL)
         self._collection = self._client.get_or_create_collection(
-            name="notion_chunks",
+            name="notion_chunks_ml",
             metadata={"hnsw:space": "cosine"},
+            embedding_function=self._ef,
         )
 
     def upsert_chunks(self, chunks: list[dict]) -> None:
@@ -45,8 +51,9 @@ class ChromaVectorStore:
         return chunks
 
     def clear(self) -> None:
-        self._client.delete_collection("notion_chunks")
+        self._client.delete_collection("notion_chunks_ml")
         self._collection = self._client.get_or_create_collection(
-            name="notion_chunks",
+            name="notion_chunks_ml",
             metadata={"hnsw:space": "cosine"},
+            embedding_function=self._ef,
         )

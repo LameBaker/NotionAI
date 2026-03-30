@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import time
+
 from notion_client import Client as NotionClient
 
 
@@ -31,9 +33,8 @@ def crawl_root(client: NotionClient, root_page_id: str) -> list[dict]:
 
 
 def _crawl_recursive(client: NotionClient, page_id: str, pages: list[dict]) -> None:
-    try:
-        page = client.pages.retrieve(page_id)
-    except Exception:
+    page = _retry_api_call(lambda: client.pages.retrieve(page_id))
+    if page is None:
         return
 
     title = _extract_page_title(page)
@@ -118,12 +119,26 @@ def _get_all_blocks(client: NotionClient, block_id: str) -> list[dict]:
     blocks: list[dict] = []
     cursor = None
     while True:
-        response = client.blocks.children.list(block_id, start_cursor=cursor, page_size=100)
+        response = _retry_api_call(
+            lambda: client.blocks.children.list(block_id, start_cursor=cursor, page_size=100)
+        )
+        if response is None:
+            break
         blocks.extend(response.get("results", []))
         if not response.get("has_more"):
             break
         cursor = response.get("next_cursor")
     return blocks
+
+
+def _retry_api_call(fn, retries: int = 3, delay: float = 2.0):
+    for attempt in range(retries):
+        try:
+            return fn()
+        except Exception:
+            if attempt == retries - 1:
+                return None
+            time.sleep(delay * (attempt + 1))
 
 
 def _extract_page_title(page: dict) -> str:

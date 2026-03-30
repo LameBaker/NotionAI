@@ -69,48 +69,51 @@ def main() -> int:
     env = load_env(dotenv_path=".env")
     config = load_access_policy_config("configs/access_policies.yaml")
 
-    notion = NotionClient(auth=env.notion_token)
+    notion = NotionClient(auth=env.notion_token, timeout_ms=60_000)
     store = ChromaVectorStore(persist_dir=".chroma_data")
 
     sync_start = datetime.now(timezone.utc).isoformat()
     last_sync = None if args.full else _load_last_sync()
 
     if last_sync:
-        print(f"Incremental sync (changes since {last_sync})")
+        print(f"Incremental sync (changes since {last_sync})", flush=True)
     else:
-        print("Full sync")
+        print("Full sync", flush=True)
 
     total_chunks = 0
     for root in config.roots:
-        print(f"Crawling {root.name} ({root.page_id})...")
+        print(f"Crawling {root.name} ({root.page_id})...", flush=True)
         pages = crawl_root(notion, root.page_id)
-        print(f"  Found {len(pages)} pages")
+        print(f"  Found {len(pages)} pages", flush=True)
 
         if last_sync:
             # Filter to only pages edited since last sync
             before = len(pages)
             pages = [p for p in pages if p.get("last_edited_time", "") > last_sync]
-            print(f"  {len(pages)} updated since last sync (skipped {before - len(pages)})")
+            print(f"  {len(pages)} updated since last sync (skipped {before - len(pages)})", flush=True)
 
         chunks = []
         for page in pages:
-            text_chunks = chunk_text(page["text"])
+            title = page["title"]
+            # Prepend title to text so embeddings understand the context
+            prefixed_text = f"{title}\n\n{page['text']}" if title else page["text"]
+            text_chunks = chunk_text(prefixed_text)
             for i, text in enumerate(text_chunks):
                 chunks.append({
                     "chunk_id": f"{page['page_id']}_{i}",
                     "page_id": page["page_id"],
                     "root_id": root.page_id,
-                    "title": page["title"],
+                    "title": title,
                     "text": text,
                 })
 
         if chunks:
             store.upsert_chunks(chunks)
         total_chunks += len(chunks)
-        print(f"  Indexed {len(chunks)} chunks")
+        print(f"  Indexed {len(chunks)} chunks", flush=True)
 
     _save_last_sync(sync_start)
-    print(f"Done. Total: {total_chunks} chunks indexed.")
+    print(f"Done. Total: {total_chunks} chunks indexed.", flush=True)
     return 0
 
 
