@@ -41,10 +41,27 @@ def _crawl_recursive(client: NotionClient, page_id: str, pages: list[dict]) -> N
     last_edited = page.get("last_edited_time", "")
     blocks = _get_all_blocks(client, page_id)
 
-    # Extract text from all blocks (including nested toggles, callouts, etc.)
+    # Extract text and discover child pages (including inside columns/callouts)
     parts: list[str] = []
     child_page_ids: list[str] = []
 
+    _process_blocks(client, blocks, parts, child_page_ids)
+
+    text = "\n\n".join(parts)
+    if text.strip():
+        pages.append({"page_id": page_id, "title": title, "text": text, "last_edited_time": last_edited})
+
+    for child_id in child_page_ids:
+        _crawl_recursive(client, child_id, pages)
+
+
+def _process_blocks(
+    client: NotionClient,
+    blocks: list[dict],
+    parts: list[str],
+    child_page_ids: list[str],
+) -> None:
+    """Extract text and collect child page IDs from blocks, recursively."""
     for block in blocks:
         block_type = block.get("type", "")
 
@@ -57,33 +74,16 @@ def _crawl_recursive(client: NotionClient, page_id: str, pages: list[dict]) -> N
         if block_type == "child_database":
             continue
 
-        _collect_block_text(client, block, parts)
+        text = _extract_rich_text(block)
+        if text:
+            parts.append(text)
 
-    text = "\n\n".join(parts)
-    if text.strip():
-        pages.append({"page_id": page_id, "title": title, "text": text, "last_edited_time": last_edited})
-
-    for child_id in child_page_ids:
-        _crawl_recursive(client, child_id, pages)
-
-
-def _collect_block_text(client: NotionClient, block: dict, parts: list[str]) -> None:
-    """Extract text from a block and recursively from its children."""
-    text = _extract_rich_text(block)
-    if text:
-        parts.append(text)
-
-    # If block has children (toggles, callouts, columns, etc.), fetch them
-    if block.get("has_children"):
-        block_id = block.get("id", "")
-        if not block_id:
-            return
-        children = _get_all_blocks(client, block_id)
-        for child in children:
-            child_type = child.get("type", "")
-            if child_type in ("child_page", "child_database"):
-                continue
-            _collect_block_text(client, child, parts)
+        # Recurse into children (toggles, callouts, columns, etc.)
+        if block.get("has_children"):
+            block_id = block.get("id", "")
+            if block_id:
+                children = _get_all_blocks(client, block_id)
+                _process_blocks(client, children, parts, child_page_ids)
 
 
 def _extract_rich_text(block: dict) -> str:
