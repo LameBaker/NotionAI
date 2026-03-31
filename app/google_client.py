@@ -13,8 +13,8 @@ class RealGoogleDirectoryClient:
             credentials_path,
             scopes=["https://www.googleapis.com/auth/admin.directory.user.readonly"],
         ).with_subject(admin_subject)
-        service = build("admin", "directory_v1", credentials=creds, cache_discovery=False)
-        self._users = service.users()
+        self._service = build("admin", "directory_v1", credentials=creds, cache_discovery=False)
+        self._users = self._service.users()
 
     def get_user_by_email(self, email: str) -> dict[str, str] | None:
         try:
@@ -27,3 +27,7 @@ class RealGoogleDirectoryClient:
             "primaryEmail": str(payload.get("primaryEmail", "")).strip(),
             "orgUnitPath": str(payload.get("orgUnitPath", "")).strip(),
         }
+
+    def close(self) -> None:
+        """Close the underlying HTTP transport."""
+        self._service.close()

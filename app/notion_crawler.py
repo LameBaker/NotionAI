@@ -73,7 +73,7 @@ def crawl_root(client: NotionClient, root_page_id: str) -> list[dict]:
     return pages
 
 
-def crawl_database(client: NotionClient, database_id: str, *, token: str = "") -> list[dict]:
+def crawl_database(client: NotionClient, database_id: str, *, token: str) -> list[dict]:
     """Fetch all pages from a Notion database. Returns list of {page_id, title, text}."""
     pages: list[dict] = []
     visited: set[str] = set()

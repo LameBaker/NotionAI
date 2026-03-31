@@ -65,6 +65,7 @@ def main() -> int:
     try:
         fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except BlockingIOError:
+        lock_fd.close()
         log.error("Another sync process is already running. Exiting.")
         return 1
 

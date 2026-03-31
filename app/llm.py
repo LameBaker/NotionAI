@@ -32,10 +32,18 @@ def build_prompt(*, question: str, context: str) -> str:
     if not context.strip():
         context_block = "(нет релевантных данных)"
     else:
-        context_block = context
+        context_block = _escape_xml_tags(context)
+    safe_question = _escape_xml_tags(question)
     return (
         f"<context>\n{context_block}\n</context>\n\n"
-        f"<user_question>\n{question}\n</user_question>"
+        f"<user_question>\n{safe_question}\n</user_question>"
+    )
+
+
+def _escape_xml_tags(text: str) -> str:
+    """Escape XML-like closing tags that could break our fencing."""
+    return text.replace("</context>", "&lt;/context&gt;").replace(
+        "</user_question>", "&lt;/user_question&gt;"
     )
 
 

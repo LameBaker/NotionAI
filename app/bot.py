@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import logging
+import threading
 import time
+from collections import OrderedDict
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
@@ -21,11 +23,56 @@ log = logging.getLogger("notionai")
 
 _PROJECT_ROOT = Path(__file__).parent.parent
 
+# Rate limit: max requests per user per window
+_RATE_LIMIT_MAX = 10
+_RATE_LIMIT_WINDOW = 60  # seconds
+
 
 @dataclass
 class QuestionResult:
     answer: str = ""
     error: str = ""
+
+
+class _ThreadSafeDedup:
+    """Thread-safe bounded set for message deduplication."""
+
+    def __init__(self, maxsize: int = 1000) -> None:
+        self._lock = threading.Lock()
+        self._cache: OrderedDict[str, None] = OrderedDict()
+        self._maxsize = maxsize
+
+    def check_and_add(self, key: str) -> bool:
+        """Returns True if key was already seen (duplicate)."""
+        with self._lock:
+            if key in self._cache:
+                return True
+            self._cache[key] = None
+            if len(self._cache) > self._maxsize:
+                self._cache.popitem(last=False)
+            return False
+
+
+class _RateLimiter:
+    """Simple per-user sliding window rate limiter."""
+
+    def __init__(self, max_requests: int = _RATE_LIMIT_MAX, window: float = _RATE_LIMIT_WINDOW) -> None:
+        self._lock = threading.Lock()
+        self._requests: dict[str, list[float]] = {}
+        self._max = max_requests
+        self._window = window
+
+    def is_allowed(self, user_id: str) -> bool:
+        now = time.time()
+        with self._lock:
+            timestamps = self._requests.get(user_id, [])
+            timestamps = [t for t in timestamps if now - t < self._window]
+            if len(timestamps) >= self._max:
+                self._requests[user_id] = timestamps
+                return False
+            timestamps.append(now)
+            self._requests[user_id] = timestamps
+            return True
 
 
 class QuestionHandler:
@@ -111,7 +158,6 @@ class QuestionHandler:
             answer = self._answer_generator(question, context)
         except Exception:
             log.exception("LLM error")
-            # Generic error — never leak exception details to user
             return QuestionResult(error="Ошибка при генерации ответа. Попробуйте позже.")
 
         elapsed = time.time() - t0
@@ -121,7 +167,7 @@ class QuestionHandler:
 
 
 def create_bot(env: EnvConfig) -> tuple[App, SocketModeHandler]:
-    # Socket Mode uses WebSocket — no HTTP request signing needed
+    # Socket Mode uses WebSocket, not HTTP — no request signature verification needed
     app = App(token=env.slack_bot_token, token_verification_enabled=False)
 
     config = load_access_policy_config(env.config_path)
@@ -148,8 +194,8 @@ def create_bot(env: EnvConfig) -> tuple[App, SocketModeHandler]:
         root_names=root_names,
     )
 
-    # Track processed message IDs to skip Slack retries
-    _seen_msgs: set[str] = set()
+    dedup = _ThreadSafeDedup(maxsize=1000)
+    rate_limiter = _RateLimiter()
 
     @app.event("message")
     def handle_dm(event, say, client):
@@ -158,22 +204,23 @@ def create_bot(env: EnvConfig) -> tuple[App, SocketModeHandler]:
         if event.get("bot_id") or event.get("subtype"):
             return
 
-        # Deduplicate Slack event retries
+        # Deduplicate Slack event retries (thread-safe)
         msg_id = event.get("client_msg_id", "")
-        if msg_id:
-            if msg_id in _seen_msgs:
-                log.debug("Skipping duplicate event %s", msg_id)
-                return
-            _seen_msgs.add(msg_id)
-            # Prevent unbounded growth — keep last 1000
-            if len(_seen_msgs) > 1000:
-                _seen_msgs.clear()
+        if msg_id and dedup.check_and_add(msg_id):
+            log.debug("Skipping duplicate event %s", msg_id)
+            return
 
         question = event.get("text", "").strip()
         if not question:
             return
 
         user_id = event.get("user", "")
+
+        # Rate limit per user
+        if not rate_limiter.is_allowed(user_id):
+            say("Слишком много запросов. Подождите минуту.")
+            return
+
         try:
             user_info = client.users_info(user=user_id)
             user_email = user_info["user"]["profile"].get("email", "")
