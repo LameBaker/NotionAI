@@ -255,6 +255,17 @@ def _retry_api_call(fn, retries: int = 3, delay: float = 2.0):
             else:
                 log.error("Permanent API error (status %d): %s", exc.status, exc)
                 return None
+        except httpx.HTTPStatusError as exc:
+            status = exc.response.status_code
+            if status in _TRANSIENT_STATUS_CODES:
+                if attempt == retries - 1:
+                    log.warning("HTTP %d after %d retries", status, retries)
+                    return None
+                log.debug("Transient HTTP %d (attempt %d/%d)", status, attempt + 1, retries)
+                time.sleep(delay * (attempt + 1))
+            else:
+                log.error("Permanent HTTP error %d: %s", status, exc)
+                return None
         except Exception as exc:
             log.error("Unexpected error: %s", exc)
             return None

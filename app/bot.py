@@ -150,8 +150,13 @@ def create_bot(env: EnvConfig) -> tuple[App, SocketModeHandler]:
             return
 
         user_id = event.get("user", "")
-        user_info = client.users_info(user=user_id)
-        user_email = user_info["user"]["profile"].get("email", "")
+        try:
+            user_info = client.users_info(user=user_id)
+            user_email = user_info["user"]["profile"].get("email", "")
+        except Exception:
+            log.exception("Failed to fetch user info for %s", user_id)
+            say("Не удалось определить ваш профиль. Попробуйте позже.")
+            return
 
         result = handler.handle(user_email=user_email, question=question)
 
