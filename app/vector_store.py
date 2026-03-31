@@ -5,8 +5,8 @@ from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunct
 
 from app.retrieval import RetrievalChunk
 
-# Multilingual model — works well with Russian text
-EMBEDDING_MODEL = "paraphrase-multilingual-MiniLM-L12-v2"
+# Multilingual model — good quality for Russian text
+EMBEDDING_MODEL = "intfloat/multilingual-e5-base"
 
 
 class ChromaVectorStore:
@@ -16,7 +16,7 @@ class ChromaVectorStore:
         self._client = chromadb.PersistentClient(path=persist_dir)
         self._ef = SentenceTransformerEmbeddingFunction(model_name=EMBEDDING_MODEL)
         self._collection = self._client.get_or_create_collection(
-            name="notion_chunks_ml",
+            name="notion_chunks_e5",
             metadata={"hnsw:space": "cosine"},
             embedding_function=self._ef,
         )
@@ -36,7 +36,9 @@ class ChromaVectorStore:
     def search(self, query: str, n_results: int = 5) -> list[RetrievalChunk]:
         if self._collection.count() == 0:
             return []
-        results = self._collection.query(query_texts=[query], n_results=n_results)
+        # e5 models work better with "query: " prefix for search queries
+        prefixed_query = f"query: {query}"
+        results = self._collection.query(query_texts=[prefixed_query], n_results=n_results)
         chunks = []
         for i, doc_id in enumerate(results["ids"][0]):
             meta = results["metadatas"][0][i]
@@ -51,9 +53,9 @@ class ChromaVectorStore:
         return chunks
 
     def clear(self) -> None:
-        self._client.delete_collection("notion_chunks_ml")
+        self._client.delete_collection("notion_chunks_e5")
         self._collection = self._client.get_or_create_collection(
-            name="notion_chunks_ml",
+            name="notion_chunks_e5",
             metadata={"hnsw:space": "cosine"},
             embedding_function=self._ef,
         )
