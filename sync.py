@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import fcntl
 import json
 import logging
 from datetime import datetime, timezone
@@ -20,6 +21,7 @@ log = logging.getLogger("notionai.sync")
 # Resolve relative to project root, not cwd
 _PROJECT_ROOT = Path(__file__).parent
 SYNC_STATE_FILE = _PROJECT_ROOT / ".sync_state.json"
+SYNC_LOCK_FILE = _PROJECT_ROOT / ".sync_lock"
 
 
 def _load_last_sync() -> str | None:
@@ -33,12 +35,38 @@ def _save_last_sync(timestamp: str) -> None:
     SYNC_STATE_FILE.write_text(json.dumps({"last_sync_time": timestamp}))
 
 
+def _parse_notion_timestamp(ts: str) -> datetime:
+    """Parse Notion ISO 8601 timestamp to datetime for robust comparison."""
+    # Notion format: 2026-03-29T10:00:00.000Z
+    ts = ts.replace("Z", "+00:00")
+    return datetime.fromisoformat(ts)
+
+
+def _is_updated_since(page: dict, since_dt: datetime) -> bool:
+    """Check if page was edited after the given datetime."""
+    raw = page.get("last_edited_time", "")
+    if not raw:
+        return True  # No timestamp = assume updated (safe default)
+    try:
+        return _parse_notion_timestamp(raw) > since_dt
+    except (ValueError, TypeError):
+        return True  # Can't parse = assume updated
+
+
 def main() -> int:
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s [%(name)s] %(message)s",
         datefmt="%H:%M:%S",
     )
+
+    # File lock — prevent concurrent sync processes from corrupting ChromaDB
+    lock_fd = open(SYNC_LOCK_FILE, "w")
+    try:
+        fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        log.error("Another sync process is already running. Exiting.")
+        return 1
 
     parser = argparse.ArgumentParser(description="Sync Notion pages to ChromaDB")
     parser.add_argument("--full", action="store_true", help="Full resync (ignore last sync time)")
@@ -48,11 +76,12 @@ def main() -> int:
     config = load_access_policy_config(env.config_path)
 
     notion = NotionClient(auth=env.notion_token, timeout_ms=60_000)
-    store = ChromaVectorStore(persist_dir=".chroma_data")
+    chroma_path = str(_PROJECT_ROOT / ".chroma_data")
+    store = ChromaVectorStore(persist_dir=chroma_path)
 
-    # Use consistent Z-suffix format (matches Notion's format for correct comparison)
     sync_start = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z")
     last_sync = None if args.full else _load_last_sync()
+    last_sync_dt = _parse_notion_timestamp(last_sync) if last_sync else None
 
     if last_sync:
         log.info("Incremental sync (changes since %s)", last_sync)
@@ -74,9 +103,9 @@ def main() -> int:
 
         log.info("  Found %d pages", len(pages))
 
-        if last_sync:
+        if last_sync_dt:
             before = len(pages)
-            pages = [p for p in pages if p.get("last_edited_time", "") > last_sync]
+            pages = [p for p in pages if _is_updated_since(p, last_sync_dt)]
             log.info("  %d updated since last sync (skipped %d)", len(pages), before - len(pages))
 
         # Delete stale chunks for updated pages before upserting new ones
@@ -105,6 +134,11 @@ def main() -> int:
 
     _save_last_sync(sync_start)
     log.info("Done. Total: %d chunks indexed.", total_chunks)
+
+    # Release lock
+    fcntl.flock(lock_fd, fcntl.LOCK_UN)
+    lock_fd.close()
+
     return 0
 
 
