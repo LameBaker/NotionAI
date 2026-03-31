@@ -9,11 +9,11 @@ from app.retrieval import RetrievalChunk
 
 log = logging.getLogger("notionai.vector_store")
 
-# Multilingual model — good quality for Russian text
-# Requires "query: " prefix for queries and "passage: " prefix for documents
-EMBEDDING_MODEL = "intfloat/multilingual-e5-base"
-_PASSAGE_PREFIX = "passage: "
-_QUERY_PREFIX = "query: "
+# BGE-M3: best multilingual model for Russian RAG on CPU (568M params, MTEB ~65)
+# No query/passage prefix needed — BGE-M3 handles this internally
+EMBEDDING_MODEL = "BAAI/bge-m3"
+_PASSAGE_PREFIX = ""
+_QUERY_PREFIX = ""
 _UPSERT_BATCH_SIZE = 500
 
 
@@ -24,7 +24,7 @@ class ChromaVectorStore:
         self._client = chromadb.PersistentClient(path=persist_dir)
         self._ef = SentenceTransformerEmbeddingFunction(model_name=EMBEDDING_MODEL)
         self._collection = self._client.get_or_create_collection(
-            name="notion_chunks_e5",
+            name="notion_chunks_bge",
             metadata={"hnsw:space": "cosine", "hnsw:search_ef": 50},
             embedding_function=self._ef,
         )
@@ -83,9 +83,9 @@ class ChromaVectorStore:
         return chunks
 
     def clear(self) -> None:
-        self._client.delete_collection("notion_chunks_e5")
+        self._client.delete_collection("notion_chunks_bge")
         self._collection = self._client.get_or_create_collection(
-            name="notion_chunks_e5",
+            name="notion_chunks_bge",
             metadata={"hnsw:space": "cosine", "hnsw:search_ef": 50},
             embedding_function=self._ef,
         )
