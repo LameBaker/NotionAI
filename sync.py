@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
-import sys
+import logging
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -15,7 +15,11 @@ from app.env import load_env
 from app.notion_crawler import chunk_text, crawl_database, crawl_root
 from app.vector_store import ChromaVectorStore
 
-SYNC_STATE_FILE = Path(".sync_state.json")
+log = logging.getLogger("notionai.sync")
+
+# Resolve relative to project root, not cwd
+_PROJECT_ROOT = Path(__file__).parent
+SYNC_STATE_FILE = _PROJECT_ROOT / ".sync_state.json"
 
 
 def _load_last_sync() -> str | None:
@@ -30,6 +34,12 @@ def _save_last_sync(timestamp: str) -> None:
 
 
 def main() -> int:
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(name)s] %(message)s",
+        datefmt="%H:%M:%S",
+    )
+
     parser = argparse.ArgumentParser(description="Sync Notion pages to ChromaDB")
     parser.add_argument("--full", action="store_true", help="Full resync (ignore last sync time)")
     args = parser.parse_args()
@@ -40,35 +50,39 @@ def main() -> int:
     notion = NotionClient(auth=env.notion_token, timeout_ms=60_000)
     store = ChromaVectorStore(persist_dir=".chroma_data")
 
-    sync_start = datetime.now(timezone.utc).isoformat()
+    # Use consistent Z-suffix format (matches Notion's format for correct comparison)
+    sync_start = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z")
     last_sync = None if args.full else _load_last_sync()
 
     if last_sync:
-        print(f"Incremental sync (changes since {last_sync})", flush=True)
+        log.info("Incremental sync (changes since %s)", last_sync)
     else:
-        print("Full sync", flush=True)
+        log.info("Full sync")
 
     total_chunks = 0
     for root in config.roots:
-        print(f"Crawling {root.name} ({root.page_id}) [{root.root_type}]...", flush=True)
+        log.info("Crawling %s (%s) [%s]...", root.name, root.page_id, root.root_type)
 
         if root.root_type == "database":
             pages = crawl_database(notion, root.page_id, token=env.notion_token)
         else:
             pages = crawl_root(notion, root.page_id)
 
-        print(f"  Found {len(pages)} pages", flush=True)
+        log.info("  Found %d pages", len(pages))
 
         if last_sync:
             before = len(pages)
             pages = [p for p in pages if p.get("last_edited_time", "") > last_sync]
-            print(f"  {len(pages)} updated since last sync (skipped {before - len(pages)})", flush=True)
+            log.info("  %d updated since last sync (skipped %d)", len(pages), before - len(pages))
+
+        # Delete stale chunks for updated pages before upserting new ones
+        for page in pages:
+            store.delete_by_page_id(page["page_id"])
 
         chunks = []
         for page in pages:
             title = page["title"]
             section_path = page.get("section_path", "")
-            # Prepend title (and section path) for better embedding context
             prefix = title
             if section_path:
                 prefix = f"{title} ({section_path})"
@@ -87,10 +101,10 @@ def main() -> int:
         if chunks:
             store.upsert_chunks(chunks)
         total_chunks += len(chunks)
-        print(f"  Indexed {len(chunks)} chunks", flush=True)
+        log.info("  Indexed %d chunks", len(chunks))
 
     _save_last_sync(sync_start)
-    print(f"Done. Total: {total_chunks} chunks indexed.", flush=True)
+    log.info("Done. Total: %d chunks indexed.", total_chunks)
     return 0
 
 
