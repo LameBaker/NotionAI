@@ -53,7 +53,7 @@ def main() -> int:
         print(f"Crawling {root.name} ({root.page_id}) [{root.root_type}]...", flush=True)
 
         if root.root_type == "database":
-            pages = crawl_database(notion, root.page_id)
+            pages = crawl_database(notion, root.page_id, token=env.notion_token)
         else:
             pages = crawl_root(notion, root.page_id)
 

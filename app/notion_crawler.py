@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import time
 
+import httpx
 from notion_client import Client as NotionClient
 
 
@@ -33,15 +34,18 @@ def crawl_root(client: NotionClient, root_page_id: str) -> list[dict]:
     return pages
 
 
-def crawl_database(client: NotionClient, database_id: str) -> list[dict]:
+def crawl_database(client: NotionClient, database_id: str, *, token: str = "") -> list[dict]:
     """Fetch all pages from a Notion database. Returns list of {page_id, title, text}."""
     pages: list[dict] = []
     visited: set[str] = set()
     cursor = None
 
     while True:
+        body: dict = {"page_size": 100}
+        if cursor:
+            body["start_cursor"] = cursor
         response = _retry_api_call(
-            lambda: client.databases.query(database_id, start_cursor=cursor, page_size=100)
+            lambda: _query_database_http(database_id, body, token)
         )
         if response is None:
             break
@@ -205,6 +209,22 @@ def _get_all_blocks(client: NotionClient, block_id: str) -> list[dict]:
             break
         cursor = response.get("next_cursor")
     return blocks
+
+
+def _query_database_http(database_id: str, body: dict, token: str) -> dict:
+    """Direct HTTP call to Notion database query (SDK v2.7 removed this method)."""
+    resp = httpx.post(
+        f"https://api.notion.com/v1/databases/{database_id}/query",
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Notion-Version": "2022-06-28",
+            "Content-Type": "application/json",
+        },
+        json=body,
+        timeout=60.0,
+    )
+    resp.raise_for_status()
+    return resp.json()
 
 
 def _retry_api_call(fn, retries: int = 3, delay: float = 2.0):
