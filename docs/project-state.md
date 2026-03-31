@@ -1,36 +1,47 @@
 # Project State
 
 ## Phase
-MVP bot working — first end-to-end test passed.
+MVP bot working — all 15 roots indexed, testing and improving quality.
 
 ## What's Done
-- Бизнес-логика (7 модулей) + интеграционные адаптеры (6 модулей)
-- 57 тестов проходят (`pytest -v`)
-- Spike complete: Google Directory + Notion root IDs verified
-- **MVP bot working:**
-  - Slack Socket Mode (DM-only)
-  - Google Directory → OU resolution
-  - ChromaDB vector search (390 chunks indexed from HR + Development)
-  - ACL filtering by root_id
-  - Claude Haiku answer generation
-  - First successful answer in Slack (2026-03-29)
+- Slack bot (Socket Mode, DM-only) — working
+- Google Directory OU resolution — working
+- ChromaDB vector search with multilingual embeddings (paraphrase-multilingual-MiniLM-L12-v2)
+- ACL filtering by root_id (allow-only, OU groups)
+- Claude Haiku answer generation
+- 15 root pages + 2 databases in config (13 page roots + Infrastructure DB + Docs DB)
+- Recursive crawler: toggles, callouts, columns, child pages inside nested blocks
+- Section path tracking (heading hierarchy)
+- Incremental sync (`sync.py` / `sync.py --full`)
+- Page deduplication in crawler
+- Retry + timeout handling for Notion API
+- Access gaps checker script (`scripts/check_access_gaps.py`)
+- 57 tests passing
+- **Stats: 1553 pages, 7200 chunks indexed**
 
-## Known Issues (next session)
-- Crawler не раскрывает toggle/callout/column блоки — теряется контент внутри них
-- Embeddings (default mini-LM) плохо работают с русским — ищет не самые релевантные чанки
-- Только 2 root'а в конфиге (HR, Development) — нужно добавить остальные 15
-- Нет логирования — непонятно что бот ищет и фильтрует
+## Known Issues
+- ~0.2% pages inaccessible (Notion "unlinked from parent" + "Only people invited") — not fixable without manual Share
+- Infrastructure database returns 0 pages (needs manual Share in Notion)
+- Embeddings quality: multilingual MiniLM decent but not perfect for Russian semantic search
+- No logging in bot (hard to debug what chunks were found/filtered)
 
-## Backlog
-- P0: Fix crawler nested blocks. Improve Russian embeddings. Add remaining roots.
-- P1: Logging/observability. Incremental sync (by last_edited_time).
-- P2: Audit logs. Operator runbook. Docker/deployment.
+## Comparison with Misha's Bot
+- Analyzed at ~/Code/notion-kb-bot-test-main/
+- His: Node.js, keyword search, no AI, job title ACL (101 manual mappings)
+- Ours: Python, semantic search + Claude AI, Google OU ACL (automatic)
+- Key learning: his section_path tracking (adopted), database indexing (adopted)
 
 ## How to Run
 ```bash
-# Sync Notion → ChromaDB
+# Full sync (first time, ~1 hour)
+.venv/bin/python sync.py --full
+
+# Incremental sync (subsequent, ~1-2 min)
 .venv/bin/python sync.py
 
 # Start bot
 .venv/bin/python main.py
+
+# Check access gaps
+PYTHONPATH=. .venv/bin/python scripts/check_access_gaps.py
 ```
