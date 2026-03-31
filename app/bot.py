@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import time
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Callable
 
 from slack_bolt import App
@@ -14,10 +15,11 @@ from app.google_client import RealGoogleDirectoryClient
 from app.identity import GoogleDirectoryIdentityResolver
 from app.llm import ClaudeAnswerGenerator
 from app.policy import evaluate_page_access
-from app.retrieval import RetrievalChunk
 from app.vector_store import ChromaVectorStore
 
 log = logging.getLogger("notionai")
+
+_PROJECT_ROOT = Path(__file__).parent.parent
 
 
 @dataclass
@@ -79,8 +81,13 @@ class QuestionHandler:
         if not allowed_root_ids:
             return QuestionResult(error="У вас нет доступа к данным. Обратитесь к администратору.")
 
+        # Over-fetch proportionally — if user sees few roots, most results get filtered
+        total_roots = len(self._root_policies)
+        allowed_count = len(allowed_root_ids)
+        fetch_count = min(20, 10 * total_roots // max(allowed_count, 1))
+
         # Search and filter by allowed roots
-        raw_chunks = self._vector_store.search(question, n_results=10)
+        raw_chunks = self._vector_store.search(question, n_results=fetch_count)
         authorized_chunks = [c for c in raw_chunks if c.root_id in allowed_root_ids]
         filtered_count = len(raw_chunks) - len(authorized_chunks)
 
@@ -102,9 +109,10 @@ class QuestionHandler:
 
         try:
             answer = self._answer_generator(question, context)
-        except Exception as exc:
-            log.error("LLM error: %s", exc)
-            return QuestionResult(error=f"Ошибка при генерации ответа: {exc}")
+        except Exception:
+            log.exception("LLM error")
+            # Generic error — never leak exception details to user
+            return QuestionResult(error="Ошибка при генерации ответа. Попробуйте позже.")
 
         elapsed = time.time() - t0
         log.info("Answered in %.1fs (%d chars)", elapsed, len(answer))
@@ -113,7 +121,7 @@ class QuestionHandler:
 
 
 def create_bot(env: EnvConfig) -> tuple[App, SocketModeHandler]:
-    # token_verification_enabled=False is safe for Socket Mode (WebSocket, not HTTP webhooks)
+    # Socket Mode uses WebSocket — no HTTP request signing needed
     app = App(token=env.slack_bot_token, token_verification_enabled=False)
 
     config = load_access_policy_config(env.config_path)
@@ -128,7 +136,8 @@ def create_bot(env: EnvConfig) -> tuple[App, SocketModeHandler]:
         client=google_client,
         corporate_domain=env.corporate_domain,
     )
-    vector_store = ChromaVectorStore(persist_dir=".chroma_data")
+    chroma_path = str(_PROJECT_ROOT / ".chroma_data")
+    vector_store = ChromaVectorStore(persist_dir=chroma_path)
     answer_generator = ClaudeAnswerGenerator(api_key=env.anthropic_api_key)
 
     handler = QuestionHandler(
@@ -139,12 +148,26 @@ def create_bot(env: EnvConfig) -> tuple[App, SocketModeHandler]:
         root_names=root_names,
     )
 
+    # Track processed message IDs to skip Slack retries
+    _seen_msgs: set[str] = set()
+
     @app.event("message")
     def handle_dm(event, say, client):
         if event.get("channel_type") != "im":
             return
         if event.get("bot_id") or event.get("subtype"):
             return
+
+        # Deduplicate Slack event retries
+        msg_id = event.get("client_msg_id", "")
+        if msg_id:
+            if msg_id in _seen_msgs:
+                log.debug("Skipping duplicate event %s", msg_id)
+                return
+            _seen_msgs.add(msg_id)
+            # Prevent unbounded growth — keep last 1000
+            if len(_seen_msgs) > 1000:
+                _seen_msgs.clear()
 
         question = event.get("text", "").strip()
         if not question:
