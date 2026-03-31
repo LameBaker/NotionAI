@@ -1,0 +1,29 @@
+# Overgear abbreviation dictionary for query expansion
+# Format: abbreviation: full form
+# Used by query_rewriter as fallback when LLM is unavailable
+
+abbreviations:
+  ТК: "Трудовой кодекс"
+  ДМС: "добровольное медицинское страхование"
+  ОМС: "обязательное медицинское страхование"
+  HR: "Human Resources, отдел кадров"
+  QA: "Quality Assurance, тестирование"
+  SA: "System Analyst, системный аналитик"
+  PM: "Product Manager, продакт-менеджер"
+  TL: "Team Lead, тимлид"
+  ADR: "Architecture Decision Record, реестр архитектурных решений"
+  OKR: "Objectives and Key Results"
+  KPI: "Key Performance Indicators"
+  LMS: "Learning Management System, система обучения"
+  CRM: "Customer Relationship Management"
+  CSO: "Currency Sales & Operations"
+  CC: "Customer Care"
+  BM: "Boosting Manager"
+  QC: "Quality Control"
+  RCR: "Recurring"
+  GDKP: "Gold DKP, система распределения добычи"
+  PTO: "Paid Time Off, оплачиваемый отпуск"
+  SF: "Salesforce"
+  WoW: "World of Warcraft"
+  FFXIV: "Final Fantasy XIV"
+  D2: "Destiny 2"

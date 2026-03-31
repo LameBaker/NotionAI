@@ -164,12 +164,13 @@ class QuestionHandler:
             rname = self._root_names.get(c.root_id, c.root_id[:8])
             log.info("  Chunk %d: [%s] %s — %s...", i + 1, rname, c.title, c.text[:60])
 
-        # Build numbered context for citation
+        # Build numbered context for citation — use parent_text for richer LLM context
         context_parts = []
         sources = []
         seen_pages: set[str] = set()
         for i, c in enumerate(reranked):
-            context_parts.append(f"[{i + 1}] {c.text}")
+            context_text = c.parent_text if c.parent_text else c.text
+            context_parts.append(f"[{i + 1}] {context_text}")
             if c.page_id not in seen_pages:
                 seen_pages.add(c.page_id)
                 sources.append({

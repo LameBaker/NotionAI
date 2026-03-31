@@ -44,6 +44,7 @@ class ChromaVectorStore:
                             "root_id": c.get("root_id", ""),
                             "title": c.get("title", ""),
                             "page_url": c.get("page_url", ""),
+                            "parent_text": c.get("parent_text", c.get("text", ""))[:3000],
                         }
                         for c in batch
                     ],
@@ -81,6 +82,7 @@ class ChromaVectorStore:
                     root_id=meta.get("root_id", ""),
                     title=meta.get("title", ""),
                     page_url=meta.get("page_url", ""),
+                    parent_text=meta.get("parent_text", doc_text),
                 )
             )
         return chunks

@@ -53,6 +53,16 @@ def _is_updated_since(page: dict, since_dt: datetime) -> bool:
         return True  # Can't parse = assume updated
 
 
+def _find_parent_index(child_text: str, parent_chunks: list[str]) -> int | None:
+    """Find which parent chunk contains the child text (by overlap)."""
+    # Strip overlap prefix if present
+    clean = child_text.lstrip(".").strip()
+    for i, parent in enumerate(parent_chunks):
+        if clean[:50] in parent:
+            return i
+    return 0 if parent_chunks else None
+
+
 def main() -> int:
     logging.basicConfig(
         level=logging.INFO,
@@ -121,14 +131,23 @@ def main() -> int:
             page_id = page["page_id"]
             page_url = f"https://www.notion.so/{page_id.replace('-', '')}"
 
-            text_chunks = chunk_text(prefixed_text)
-            for i, text in enumerate(text_chunks):
+            # Parent chunks (large, for LLM context)
+            parent_chunks = chunk_text(prefixed_text, max_chunk_size=1500, overlap=0)
+            # Child chunks (small, for precise search)
+            child_chunks = chunk_text(prefixed_text, max_chunk_size=300, overlap=50)
+
+            for i, text in enumerate(child_chunks):
+                # Find which parent chunk contains this child
+                parent_idx = _find_parent_index(text, parent_chunks)
+                parent_text = parent_chunks[parent_idx] if parent_idx is not None else text
+
                 chunks.append({
                     "chunk_id": f"{page_id}_{i}",
                     "page_id": page_id,
                     "root_id": root.page_id,
                     "title": title,
-                    "text": text,
+                    "text": text,              # small chunk for search embedding
+                    "parent_text": parent_text, # large chunk for LLM context
                     "page_url": page_url,
                 })
 
