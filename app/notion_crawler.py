@@ -33,7 +33,57 @@ def crawl_root(client: NotionClient, root_page_id: str) -> list[dict]:
     return pages
 
 
-def _crawl_recursive(client: NotionClient, page_id: str, pages: list[dict], visited: set[str]) -> None:
+def crawl_database(client: NotionClient, database_id: str) -> list[dict]:
+    """Fetch all pages from a Notion database. Returns list of {page_id, title, text}."""
+    pages: list[dict] = []
+    visited: set[str] = set()
+    cursor = None
+
+    while True:
+        response = _retry_api_call(
+            lambda: client.databases.query(database_id, start_cursor=cursor, page_size=100)
+        )
+        if response is None:
+            break
+
+        for entry in response.get("results", []):
+            page_id = entry.get("id", "")
+            if not page_id or page_id in visited:
+                continue
+            visited.add(page_id)
+
+            title = _extract_page_title(entry)
+            last_edited = entry.get("last_edited_time", "")
+
+            # Fetch page content
+            blocks = _get_all_blocks(client, page_id)
+            parts: list[str] = []
+            section_trail: list[str] = []
+            child_page_ids: list[str] = []
+            _process_blocks(client, blocks, parts, child_page_ids, section_trail)
+
+            text = "\n\n".join(parts)
+            section_path = ""  # DB entries don't have heading hierarchy from parent
+
+            if text.strip():
+                pages.append({
+                    "page_id": page_id,
+                    "title": title,
+                    "text": text,
+                    "last_edited_time": last_edited,
+                    "section_path": section_path,
+                })
+
+        if not response.get("has_more"):
+            break
+        cursor = response.get("next_cursor")
+
+    return pages
+
+
+def _crawl_recursive(
+    client: NotionClient, page_id: str, pages: list[dict], visited: set[str]
+) -> None:
     if page_id in visited:
         return
     visited.add(page_id)
@@ -48,12 +98,19 @@ def _crawl_recursive(client: NotionClient, page_id: str, pages: list[dict], visi
     # Extract text and discover child pages (including inside columns/callouts)
     parts: list[str] = []
     child_page_ids: list[str] = []
+    section_trail: list[str] = []
 
-    _process_blocks(client, blocks, parts, child_page_ids)
+    _process_blocks(client, blocks, parts, child_page_ids, section_trail)
 
     text = "\n\n".join(parts)
     if text.strip():
-        pages.append({"page_id": page_id, "title": title, "text": text, "last_edited_time": last_edited})
+        pages.append({
+            "page_id": page_id,
+            "title": title,
+            "text": text,
+            "last_edited_time": last_edited,
+            "section_path": " > ".join(section_trail) if section_trail else "",
+        })
 
     for child_id in child_page_ids:
         _crawl_recursive(client, child_id, pages, visited)
@@ -64,8 +121,10 @@ def _process_blocks(
     blocks: list[dict],
     parts: list[str],
     child_page_ids: list[str],
+    section_trail: list[str],
 ) -> None:
-    """Extract text and collect child page IDs from blocks, recursively."""
+    """Extract text and collect child page IDs from blocks, recursively.
+    Tracks heading hierarchy for section_path."""
     for block in blocks:
         block_type = block.get("type", "")
 
@@ -76,7 +135,20 @@ def _process_blocks(
             continue
 
         if block_type == "child_database":
+            child_id = block.get("id", "")
+            if child_id:
+                child_page_ids.append(child_id)
             continue
+
+        # Track heading hierarchy for section path
+        if block_type in ("heading_1", "heading_2", "heading_3"):
+            heading_text = _extract_rich_text(block)
+            if heading_text:
+                level = int(block_type[-1])
+                # Trim trail to current level
+                while len(section_trail) >= level:
+                    section_trail.pop()
+                section_trail.append(heading_text)
 
         text = _extract_rich_text(block)
         if text:
@@ -87,7 +159,7 @@ def _process_blocks(
             block_id = block.get("id", "")
             if block_id:
                 children = _get_all_blocks(client, block_id)
-                _process_blocks(client, children, parts, child_page_ids)
+                _process_blocks(client, children, parts, child_page_ids, section_trail)
 
 
 def _extract_rich_text(block: dict) -> str:
@@ -102,7 +174,7 @@ def _extract_rich_text(block: dict) -> str:
     if not rich_texts:
         rich_texts = data.get("text", [])
 
-    # Table cells, etc.
+    # Table cells
     if not rich_texts and block_type == "table_row":
         cells = data.get("cells", [])
         cell_texts = []

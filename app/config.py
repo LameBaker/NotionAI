@@ -59,9 +59,12 @@ def _build_root_policy(payload: Any, groups: dict[str, list[str]]) -> RootAccess
     if not isinstance(allow_ou, list) or not isinstance(allow_users, list):
         raise ValueError("allow_ou and allow_users must be lists")
 
+    root_type = str(payload.get("type", "page")).strip()
+
     return RootAccessPolicy(
         name=name,
         page_id=page_id,
         allow_ou=[str(item) for item in allow_ou],
         allow_users=[str(item) for item in allow_users],
+        root_type=root_type,
     )

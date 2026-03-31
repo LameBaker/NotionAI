@@ -80,3 +80,18 @@ roots:
     page_id: "f7164ce8-634a-4b7d-b036-d0d8652fe53c"
     allow_ou_group: all_internal
     allow_users: []
+
+  # Databases
+  - name: Infrastructure (Internal Services)
+    page_id: "f2ab0e1d-88de-4e10-8c5e-bd1fa18ed8d6"
+    type: database
+    allow_ou:
+      - "/Development"
+      - "/Product"
+    allow_users: []
+
+  - name: Docs
+    page_id: "94bfc19b-c090-4c5a-934d-fc378e31ac10"
+    type: database
+    allow_ou_group: all_internal
+    allow_users: []

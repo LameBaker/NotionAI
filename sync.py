@@ -12,7 +12,7 @@ from notion_client import Client as NotionClient
 
 from app.config import load_access_policy_config
 from app.env import load_env
-from app.notion_crawler import chunk_text, crawl_root
+from app.notion_crawler import chunk_text, crawl_database, crawl_root
 from app.vector_store import ChromaVectorStore
 
 SYNC_STATE_FILE = Path(".sync_state.json")
@@ -27,38 +27,6 @@ def _load_last_sync() -> str | None:
 
 def _save_last_sync(timestamp: str) -> None:
     SYNC_STATE_FILE.write_text(json.dumps({"last_sync_time": timestamp}))
-
-
-def _find_updated_pages(
-    client: NotionClient, root_page_id: str, since: str
-) -> list[str]:
-    """Use Notion search API to find pages edited after `since` under a root."""
-    updated_ids: list[str] = []
-    cursor = None
-    while True:
-        response = client.search(
-            filter={"property": "object", "value": "page"},
-            sort={"direction": "descending", "timestamp": "last_edited_time"},
-            start_cursor=cursor,
-            page_size=100,
-        )
-        results = response.get("results", [])
-        if not results:
-            break
-
-        for page in results:
-            edited = page.get("last_edited_time", "")
-            if edited <= since:
-                return updated_ids
-            page_id = page.get("id", "")
-            if page_id:
-                updated_ids.append(page_id)
-
-        if not response.get("has_more"):
-            break
-        cursor = response.get("next_cursor")
-
-    return updated_ids
 
 
 def main() -> int:
@@ -82,12 +50,16 @@ def main() -> int:
 
     total_chunks = 0
     for root in config.roots:
-        print(f"Crawling {root.name} ({root.page_id})...", flush=True)
-        pages = crawl_root(notion, root.page_id)
+        print(f"Crawling {root.name} ({root.page_id}) [{root.root_type}]...", flush=True)
+
+        if root.root_type == "database":
+            pages = crawl_database(notion, root.page_id)
+        else:
+            pages = crawl_root(notion, root.page_id)
+
         print(f"  Found {len(pages)} pages", flush=True)
 
         if last_sync:
-            # Filter to only pages edited since last sync
             before = len(pages)
             pages = [p for p in pages if p.get("last_edited_time", "") > last_sync]
             print(f"  {len(pages)} updated since last sync (skipped {before - len(pages)})", flush=True)
@@ -95,8 +67,13 @@ def main() -> int:
         chunks = []
         for page in pages:
             title = page["title"]
-            # Prepend title to text so embeddings understand the context
-            prefixed_text = f"{title}\n\n{page['text']}" if title else page["text"]
+            section_path = page.get("section_path", "")
+            # Prepend title (and section path) for better embedding context
+            prefix = title
+            if section_path:
+                prefix = f"{title} ({section_path})"
+            prefixed_text = f"{prefix}\n\n{page['text']}" if prefix else page["text"]
+
             text_chunks = chunk_text(prefixed_text)
             for i, text in enumerate(text_chunks):
                 chunks.append({
