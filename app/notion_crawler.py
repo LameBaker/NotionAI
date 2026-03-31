@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+import logging
 import time
 
 import httpx
 from notion_client import Client as NotionClient
+from notion_client.errors import APIResponseError
+
+log = logging.getLogger("notionai.crawler")
 
 
 def chunk_text(text: str, max_chunk_size: int = 1000) -> list[str]:
@@ -45,7 +49,7 @@ def crawl_database(client: NotionClient, database_id: str, *, token: str = "") -
         if cursor:
             body["start_cursor"] = cursor
         response = _retry_api_call(
-            lambda: _query_database_http(database_id, body, token)
+            lambda b=body: _query_database_http(database_id, b, token)
         )
         if response is None:
             break
@@ -200,7 +204,7 @@ def _get_all_blocks(client: NotionClient, block_id: str) -> list[dict]:
     cursor = None
     while True:
         response = _retry_api_call(
-            lambda: client.blocks.children.list(block_id, start_cursor=cursor, page_size=100)
+            lambda c=cursor: client.blocks.children.list(block_id, start_cursor=c, page_size=100)
         )
         if response is None:
             break
@@ -227,14 +231,33 @@ def _query_database_http(database_id: str, body: dict, token: str) -> dict:
     return resp.json()
 
 
+_TRANSIENT_ERRORS = (TimeoutError, ConnectionError, httpx.TimeoutException, httpx.ConnectError)
+_TRANSIENT_STATUS_CODES = {429, 500, 502, 503, 504}
+
+
 def _retry_api_call(fn, retries: int = 3, delay: float = 2.0):
     for attempt in range(retries):
         try:
             return fn()
-        except Exception:
+        except _TRANSIENT_ERRORS as exc:
             if attempt == retries - 1:
+                log.warning("API call failed after %d retries: %s", retries, exc)
                 return None
+            log.debug("Transient error (attempt %d/%d): %s", attempt + 1, retries, exc)
             time.sleep(delay * (attempt + 1))
+        except APIResponseError as exc:
+            if exc.status in _TRANSIENT_STATUS_CODES:
+                if attempt == retries - 1:
+                    log.warning("API %d error after %d retries: %s", exc.status, retries, exc)
+                    return None
+                log.debug("Transient API %d (attempt %d/%d)", exc.status, attempt + 1, retries)
+                time.sleep(delay * (attempt + 1))
+            else:
+                log.error("Permanent API error (status %d): %s", exc.status, exc)
+                return None
+        except Exception as exc:
+            log.error("Unexpected error: %s", exc)
+            return None
 
 
 def _extract_page_title(page: dict) -> str:
