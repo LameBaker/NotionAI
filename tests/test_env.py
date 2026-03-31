@@ -1,6 +1,8 @@
 import os
 from unittest.mock import patch
 
+import pytest
+
 from app.env import load_env
 
 
@@ -28,8 +30,5 @@ def test_load_env_reads_required_values():
 
 def test_load_env_raises_for_missing_required():
     with patch.dict(os.environ, {}, clear=True):
-        try:
+        with pytest.raises(ValueError, match="SLACK_BOT_TOKEN"):
             load_env()
-            assert False, "Should have raised"
-        except ValueError as e:
-            assert "SLACK_BOT_TOKEN" in str(e)

@@ -20,6 +20,14 @@ def chunk_text(text: str, max_chunk_size: int = 1000) -> list[str]:
         para = para.strip()
         if not para:
             continue
+        # Split oversized paragraphs by sentences
+        if len(para) > max_chunk_size:
+            if current:
+                chunks.append(current)
+                current = ""
+            for sub in _split_long_paragraph(para, max_chunk_size):
+                chunks.append(sub)
+            continue
         if current and len(current) + len(para) + 2 > max_chunk_size:
             chunks.append(current)
             current = para
@@ -28,6 +36,31 @@ def chunk_text(text: str, max_chunk_size: int = 1000) -> list[str]:
     if current:
         chunks.append(current)
     return chunks
+
+
+def _split_long_paragraph(text: str, max_size: int) -> list[str]:
+    """Split a long paragraph by sentence boundaries, then by hard limit."""
+    import re
+    sentences = re.split(r"(?<=[.!?。])\s+", text)
+    chunks: list[str] = []
+    current = ""
+    for sent in sentences:
+        if current and len(current) + len(sent) + 1 > max_size:
+            chunks.append(current)
+            current = sent
+        else:
+            current = f"{current} {sent}" if current else sent
+    if current:
+        chunks.append(current)
+    # Final fallback: hard-split anything still over limit
+    result = []
+    for chunk in chunks:
+        while len(chunk) > max_size:
+            result.append(chunk[:max_size])
+            chunk = chunk[max_size:]
+        if chunk:
+            result.append(chunk)
+    return result
 
 
 def crawl_root(client: NotionClient, root_page_id: str) -> list[dict]:

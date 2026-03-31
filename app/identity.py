@@ -35,5 +35,3 @@ class GoogleDirectoryIdentityResolver:
 
     def _is_corporate_email(self, email: str) -> bool:
         return email.endswith(f"@{self._corporate_domain}")
-
-

@@ -113,6 +113,7 @@ class QuestionHandler:
 
 
 def create_bot(env: EnvConfig) -> tuple[App, SocketModeHandler]:
+    # token_verification_enabled=False is safe for Socket Mode (WebSocket, not HTTP webhooks)
     app = App(token=env.slack_bot_token, token_verification_enabled=False)
 
     config = load_access_policy_config(env.config_path)

@@ -1,3 +1,5 @@
+# NOTE: OU paths are case-sensitive — must match Google Admin Console exactly.
+# Use scripts/spike/check_google_directory.py to verify actual OU paths.
 default: deny_all
 
 groups:
