@@ -1,24 +1,27 @@
 # Roadmap
 
-## Stage 1: Foundations
-- Finalize root IDs and OU paths.
-- Implement config loader and policy evaluator.
-- Add ACL evaluation tests.
+## Done
+- MVP bot: Slack DM → Google OU → ACL → vector search → rerank → Claude → answer
+- 15 Notion spaces + 2 databases indexed (1553 pages, 7000+ chunks)
+- BGE-M3 embeddings + BGE Reranker
+- Citations with Notion links
+- Security: prompt injection fencing, rate limiting, event dedup, error leak prevention
 
-## Stage 2: Integrations
-- Slack event ingestion.
-- Google Admin SDK OU resolver.
-- Notion ingestion pipeline.
+## Next: Quality Improvements
+- Hybrid search (BGE-M3 sparse + dense + RRF fusion)
+- Query expansion/rewriting via LLM
+- Parent-child chunk retrieval (small for search, large for context)
+- Overgear abbreviation dictionary
 
-## Stage 3: Retrieval + Answering
-- Chunk store and retrieval.
-- ACL pre-filtering before LLM context.
-- Source metadata rendering in Slack response.
+## Next: Operations
+- Cron setup for sync (every 30-60 min)
+- Docker container for deployment
+- Logging/monitoring dashboard
+- Hand off to DevOps
 
-## Stage 4: Hardening
-- Audit logging.
-- Access regression tests.
-- Operational runbooks.
-
-## Stage 5: Optional Expansion
-- Multi-integration Notion token routing for sensitive domains.
+## Future
+- Slack @mention in channels (needs ACL strategy for public answers)
+- Semantic caching for frequent questions
+- Fine-tune embeddings with real user queries (need 500+ pairs)
+- Notion webhooks for real-time sync (when API exits beta)
+- Database indexing for Release Notes (check with Sasha Kozhevnikov first)
