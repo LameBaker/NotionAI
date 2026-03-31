@@ -3,7 +3,7 @@ from app.notion_crawler import chunk_text
 
 def test_chunk_text_splits_by_size():
     text = "Абзац один.\n\nАбзац два.\n\nАбзац три."
-    chunks = chunk_text(text, max_chunk_size=30)
+    chunks = chunk_text(text, max_chunk_size=30, overlap=0)
     assert len(chunks) >= 2
     # Multi-paragraph chunks must respect size limit
     for chunk in chunks:

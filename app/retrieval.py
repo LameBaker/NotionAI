@@ -9,3 +9,5 @@ class RetrievalChunk:
     chunk_id: str
     text: str
     root_id: str = ""
+    title: str = ""
+    page_url: str = ""

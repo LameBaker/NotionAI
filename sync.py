@@ -118,14 +118,18 @@ def main() -> int:
             title = page["title"]
             prefixed_text = f"{title}\n\n{page['text']}" if title else page["text"]
 
+            page_id = page["page_id"]
+            page_url = f"https://www.notion.so/{page_id.replace('-', '')}"
+
             text_chunks = chunk_text(prefixed_text)
             for i, text in enumerate(text_chunks):
                 chunks.append({
-                    "chunk_id": f"{page['page_id']}_{i}",
-                    "page_id": page["page_id"],
+                    "chunk_id": f"{page_id}_{i}",
+                    "page_id": page_id,
                     "root_id": root.page_id,
                     "title": title,
                     "text": text,
+                    "page_url": page_url,
                 })
 
         if chunks:

@@ -13,11 +13,12 @@ MAX_CRAWL_DEPTH = 50
 log = logging.getLogger("notionai.crawler")
 
 
-def chunk_text(text: str, max_chunk_size: int = 1000) -> list[str]:
+def chunk_text(text: str, max_chunk_size: int = 1000, overlap: int = 100) -> list[str]:
+    """Split text into chunks with optional overlap between consecutive chunks."""
     if not text.strip():
         return []
     paragraphs = text.split("\n\n")
-    chunks: list[str] = []
+    raw_chunks: list[str] = []
     current = ""
     for para in paragraphs:
         para = para.strip()
@@ -26,18 +27,26 @@ def chunk_text(text: str, max_chunk_size: int = 1000) -> list[str]:
         # Split oversized paragraphs by sentences
         if len(para) > max_chunk_size:
             if current:
-                chunks.append(current)
+                raw_chunks.append(current)
                 current = ""
             for sub in _split_long_paragraph(para, max_chunk_size):
-                chunks.append(sub)
+                raw_chunks.append(sub)
             continue
         if current and len(current) + len(para) + 2 > max_chunk_size:
-            chunks.append(current)
+            raw_chunks.append(current)
             current = para
         else:
             current = f"{current}\n\n{para}" if current else para
     if current:
-        chunks.append(current)
+        raw_chunks.append(current)
+
+    # Apply overlap: prepend tail of previous chunk to next chunk
+    if overlap <= 0 or len(raw_chunks) <= 1:
+        return raw_chunks
+    chunks = [raw_chunks[0]]
+    for i in range(1, len(raw_chunks)):
+        prev_tail = raw_chunks[i - 1][-overlap:]
+        chunks.append(f"...{prev_tail}\n\n{raw_chunks[i]}")
     return chunks
 
 

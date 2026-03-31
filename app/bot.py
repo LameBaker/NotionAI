@@ -4,7 +4,7 @@ import logging
 import threading
 import time
 from collections import OrderedDict
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable
 
@@ -17,6 +17,8 @@ from app.google_client import RealGoogleDirectoryClient
 from app.identity import GoogleDirectoryIdentityResolver
 from app.llm import ClaudeAnswerGenerator
 from app.policy import evaluate_page_access
+from app.reranker import BGEReranker
+from app.retrieval import RetrievalChunk
 from app.vector_store import ChromaVectorStore
 
 log = logging.getLogger("notionai")
@@ -32,6 +34,7 @@ _RATE_LIMIT_WINDOW = 60  # seconds
 class QuestionResult:
     answer: str = ""
     error: str = ""
+    sources: list[dict] = field(default_factory=list)
 
 
 class _ThreadSafeDedup:
@@ -76,7 +79,7 @@ class _RateLimiter:
 
 
 class QuestionHandler:
-    """Testable core logic: resolve user, check ACL, search, generate answer."""
+    """Core logic: resolve user, check ACL, search, rerank, generate answer with citations."""
 
     def __init__(
         self,
@@ -84,12 +87,14 @@ class QuestionHandler:
         identity_resolver,
         vector_store,
         answer_generator: Callable[[str, str], str],
+        reranker,
         root_policies: dict,
         root_names: dict,
     ):
         self._identity_resolver = identity_resolver
         self._vector_store = vector_store
         self._answer_generator = answer_generator
+        self._reranker = reranker
         self._root_policies = root_policies
         self._root_names = root_names
 
@@ -128,13 +133,8 @@ class QuestionHandler:
         if not allowed_root_ids:
             return QuestionResult(error="У вас нет доступа к данным. Обратитесь к администратору.")
 
-        # Over-fetch proportionally — if user sees few roots, most results get filtered
-        total_roots = len(self._root_policies)
-        allowed_count = len(allowed_root_ids)
-        fetch_count = min(20, 10 * total_roots // max(allowed_count, 1))
-
-        # Search and filter by allowed roots
-        raw_chunks = self._vector_store.search(question, n_results=fetch_count)
+        # Over-fetch for reranking — get top-20, ACL filter, rerank to top-5
+        raw_chunks = self._vector_store.search(question, n_results=20)
         authorized_chunks = [c for c in raw_chunks if c.root_id in allowed_root_ids]
         filtered_count = len(raw_chunks) - len(authorized_chunks)
 
@@ -144,15 +144,32 @@ class QuestionHandler:
             len(authorized_chunks),
             f", {filtered_count} filtered by ACL" if filtered_count else "",
         )
-        for i, c in enumerate(authorized_chunks[:5]):
-            rname = self._root_names.get(c.root_id, c.root_id[:8])
-            log.info("  Chunk %d: [%s] %s...", i + 1, rname, c.text[:80])
 
         if not authorized_chunks:
             return QuestionResult(error="К сожалению, я не нашёл релевантную информацию по вашему вопросу.")
 
-        # Build context from authorized chunks only
-        context = "\n\n".join(c.text for c in authorized_chunks[:5])
+        # Rerank authorized chunks for better relevance
+        reranked = self._reranker.rerank(question, authorized_chunks, top_k=5)
+
+        for i, c in enumerate(reranked):
+            rname = self._root_names.get(c.root_id, c.root_id[:8])
+            log.info("  Chunk %d: [%s] %s — %s...", i + 1, rname, c.title, c.text[:60])
+
+        # Build numbered context for citation
+        context_parts = []
+        sources = []
+        seen_pages: set[str] = set()
+        for i, c in enumerate(reranked):
+            context_parts.append(f"[{i + 1}] {c.text}")
+            if c.page_id not in seen_pages:
+                seen_pages.add(c.page_id)
+                sources.append({
+                    "index": i + 1,
+                    "title": c.title,
+                    "url": c.page_url,
+                })
+
+        context = "\n\n".join(context_parts)
 
         try:
             answer = self._answer_generator(question, context)
@@ -161,9 +178,29 @@ class QuestionHandler:
             return QuestionResult(error="Ошибка при генерации ответа. Попробуйте позже.")
 
         elapsed = time.time() - t0
-        log.info("Answered in %.1fs (%d chars)", elapsed, len(answer))
+        log.info("Answered in %.1fs (%d chars, %d sources)", elapsed, len(answer), len(sources))
 
-        return QuestionResult(answer=answer)
+        return QuestionResult(answer=answer, sources=sources)
+
+
+def _format_slack_response(result: QuestionResult) -> str:
+    """Format answer with source citations for Slack."""
+    if result.error:
+        return result.error
+
+    parts = [result.answer]
+
+    if result.sources:
+        source_lines = []
+        for s in result.sources:
+            if s.get("url"):
+                source_lines.append(f"• <{s['url']}|{s.get('title', 'Страница')}>")
+            elif s.get("title"):
+                source_lines.append(f"• {s['title']}")
+        if source_lines:
+            parts.append("\n📚 *Источники:*\n" + "\n".join(source_lines))
+
+    return "\n".join(parts)
 
 
 def create_bot(env: EnvConfig) -> tuple[App, SocketModeHandler]:
@@ -185,11 +222,13 @@ def create_bot(env: EnvConfig) -> tuple[App, SocketModeHandler]:
     chroma_path = str(_PROJECT_ROOT / ".chroma_data")
     vector_store = ChromaVectorStore(persist_dir=chroma_path)
     answer_generator = ClaudeAnswerGenerator(api_key=env.anthropic_api_key)
+    reranker = BGEReranker()
 
     handler = QuestionHandler(
         identity_resolver=identity_resolver,
         vector_store=vector_store,
         answer_generator=answer_generator,
+        reranker=reranker,
         root_policies=root_policies,
         root_names=root_names,
     )
@@ -230,8 +269,7 @@ def create_bot(env: EnvConfig) -> tuple[App, SocketModeHandler]:
             return
 
         result = handler.handle(user_email=user_email, question=question)
-
-        say(result.answer if result.answer else result.error)
+        say(_format_slack_response(result))
 
     socket_handler = SocketModeHandler(app, env.slack_app_token)
     return app, socket_handler
