@@ -104,15 +104,12 @@ def crawl_database(client: NotionClient, database_id: str, *, token: str = "") -
             _process_blocks(client, blocks, parts, child_page_ids, section_trail)
 
             text = "\n\n".join(parts)
-            section_path = ""  # DB entries don't have heading hierarchy from parent
-
             if text.strip():
                 pages.append({
                     "page_id": page_id,
                     "title": title,
                     "text": text,
                     "last_edited_time": last_edited,
-                    "section_path": section_path,
                 })
 
         if not response.get("has_more"):
@@ -130,6 +127,7 @@ def _crawl_recursive(
     visited.add(page_id)
     page = _retry_api_call(lambda: client.pages.retrieve(page_id))
     if page is None:
+        log.warning("Skipping page %s (failed to retrieve)", page_id)
         return
 
     title = _extract_page_title(page)
@@ -139,9 +137,9 @@ def _crawl_recursive(
     # Extract text and discover child pages (including inside columns/callouts)
     parts: list[str] = []
     child_page_ids: list[str] = []
-    section_trail: list[str] = []
+    heading_trail: list[str] = []
 
-    _process_blocks(client, blocks, parts, child_page_ids, section_trail)
+    _process_blocks(client, blocks, parts, child_page_ids, heading_trail)
 
     text = "\n\n".join(parts)
     if text.strip():
@@ -150,7 +148,6 @@ def _crawl_recursive(
             "title": title,
             "text": text,
             "last_edited_time": last_edited,
-            "section_path": " > ".join(section_trail) if section_trail else "",
         })
 
     for child_id in child_page_ids:

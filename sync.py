@@ -63,6 +63,10 @@ def main() -> int:
     for root in config.roots:
         log.info("Crawling %s (%s) [%s]...", root.name, root.page_id, root.root_type)
 
+        # NOTE: crawl_root/crawl_database still fetches ALL pages even on incremental sync.
+        # The filtering by last_edited_time happens after the full crawl, so API call count
+        # is the same. This saves embedding/upsert cost but not API rate budget.
+        # TODO: Use Notion search API with last_edited_time filter to skip unchanged pages.
         if root.root_type == "database":
             pages = crawl_database(notion, root.page_id, token=env.notion_token)
         else:
@@ -82,11 +86,7 @@ def main() -> int:
         chunks = []
         for page in pages:
             title = page["title"]
-            section_path = page.get("section_path", "")
-            prefix = title
-            if section_path:
-                prefix = f"{title} ({section_path})"
-            prefixed_text = f"{prefix}\n\n{page['text']}" if prefix else page["text"]
+            prefixed_text = f"{title}\n\n{page['text']}" if title else page["text"]
 
             text_chunks = chunk_text(prefixed_text)
             for i, text in enumerate(text_chunks):
