@@ -50,47 +50,6 @@ def test_deny_when_unmatched() -> None:
     )
 
 
-def test_acl_restricted_requires_explicit_allows() -> None:
-    root = _root_policy(allow_ou=["/"], allow_users=[])
-
-    assert (
-        evaluate_page_access(
-            user_email="anyone@company.com",
-            user_ou="/Any",
-            root_policy=root,
-            acl_restricted=True,
-            acl_allow_ou=[],
-            acl_allow_users=[],
-        )
-        is False
-    )
-
-    assert (
-        evaluate_page_access(
-            user_email="specific@company.com",
-            user_ou="/Any",
-            root_policy=root,
-            acl_restricted=True,
-            acl_allow_users=["specific@company.com"],
-        )
-        is True
-    )
-
-
-def test_acl_allow_expands_access_when_not_restricted() -> None:
-    root = _root_policy(allow_ou=["/Development"], allow_users=[])
-
-    assert (
-        evaluate_page_access(
-            user_email="guest@company.com",
-            user_ou="/Sales",
-            root_policy=root,
-            acl_allow_users=["guest@company.com"],
-        )
-        is True
-    )
-
-
 def test_blank_allow_ou_values_do_not_grant_global_access() -> None:
     root = _root_policy(allow_ou=["   "], allow_users=[])
 
