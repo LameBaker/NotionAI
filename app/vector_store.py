@@ -10,7 +10,7 @@ EMBEDDING_MODEL = "intfloat/multilingual-e5-base"
 
 
 class ChromaVectorStore:
-    """Implements Retriever protocol from app/service.py via search()."""
+    """ChromaDB vector store. Used by app/bot.py and sync.py."""
 
     def __init__(self, *, persist_dir: str = ".chroma_data") -> None:
         self._client = chromadb.PersistentClient(path=persist_dir)

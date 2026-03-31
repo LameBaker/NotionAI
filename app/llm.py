@@ -21,7 +21,7 @@ def build_prompt(*, question: str, context: str) -> str:
 
 
 class ClaudeAnswerGenerator:
-    """Implements AnswerGenerator protocol from app/service.py."""
+    """Claude-based answer generator. Used by app/bot.py."""
 
     def __init__(self, *, api_key: str, model: str = "claude-haiku-4-5-20251001") -> None:
         self._client = Anthropic(api_key=api_key)

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from app.models import RootAccessPolicy
+from app.ou_utils import normalize_ou_path
 
 
 def evaluate_page_access(
@@ -36,12 +37,12 @@ def _matches_email(user_email: str, allowed_users: list[str]) -> bool:
 
 
 def _matches_ou(user_ou: str, allowed_ou_prefixes: list[str]) -> bool:
-    normalized_user_ou = _normalize_ou_path(user_ou)
+    normalized_user_ou = normalize_ou_path(user_ou)
 
     for raw_prefix in allowed_ou_prefixes:
         if not raw_prefix.strip():
             continue
-        prefix = _normalize_ou_path(raw_prefix)
+        prefix = normalize_ou_path(raw_prefix)
         if prefix == "/":
             return True
         if normalized_user_ou == prefix or normalized_user_ou.startswith(prefix + "/"):
@@ -50,15 +51,3 @@ def _matches_ou(user_ou: str, allowed_ou_prefixes: list[str]) -> bool:
     return False
 
 
-def _normalize_ou_path(path: str) -> str:
-    value = path.strip()
-    if not value:
-        return "/"
-
-    if not value.startswith("/"):
-        value = "/" + value
-
-    if value != "/":
-        value = value.rstrip("/")
-
-    return value

@@ -14,6 +14,8 @@ class EnvConfig:
     notion_token: str
     google_credentials_path: str
     google_admin_subject: str
+    corporate_domain: str
+    config_path: str
 
 
 _REQUIRED = [
@@ -41,4 +43,6 @@ def load_env(dotenv_path: str | None = None) -> EnvConfig:
         notion_token=os.environ["NOTION_TOKEN"].strip(),
         google_credentials_path=os.environ["GOOGLE_APPLICATION_CREDENTIALS"].strip(),
         google_admin_subject=os.environ["GOOGLE_ADMIN_SUBJECT"].strip(),
+        corporate_domain=os.getenv("CORPORATE_DOMAIN", "overgear.com").strip(),
+        config_path=os.getenv("CONFIG_PATH", "configs/access_policies.yaml").strip(),
     )

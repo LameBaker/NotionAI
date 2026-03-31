@@ -20,7 +20,7 @@ log = logging.getLogger("notionai")
 def create_bot(env: EnvConfig) -> tuple[App, SocketModeHandler]:
     app = App(token=env.slack_bot_token)
 
-    config = load_access_policy_config("configs/access_policies.yaml")
+    config = load_access_policy_config(env.config_path)
     root_policies = {root.page_id: root for root in config.roots}
     root_names = {root.page_id: root.name for root in config.roots}
 
@@ -30,7 +30,7 @@ def create_bot(env: EnvConfig) -> tuple[App, SocketModeHandler]:
     )
     identity_resolver = GoogleDirectoryIdentityResolver(
         client=google_client,
-        corporate_domain="overgear.com",
+        corporate_domain=env.corporate_domain,
     )
     vector_store = ChromaVectorStore(persist_dir=".chroma_data")
     answer_generator = ClaudeAnswerGenerator(api_key=env.anthropic_api_key)

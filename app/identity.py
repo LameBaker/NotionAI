@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Protocol
 
+from app.ou_utils import normalize_ou_path
+
 
 class InvalidCorporateEmailError(ValueError):
     """Raised when identity resolution is requested for a non-corporate email."""
@@ -26,24 +28,12 @@ class GoogleDirectoryIdentityResolver:
         if user is None:
             return None
 
-        return _normalize_ou_path(user.get("orgUnitPath"))
+        raw_path = user.get("orgUnitPath")
+        if not isinstance(raw_path, str) or not raw_path.strip():
+            return None
+        return normalize_ou_path(raw_path)
 
     def _is_corporate_email(self, email: str) -> bool:
         return email.endswith(f"@{self._corporate_domain}")
 
 
-def _normalize_ou_path(path: object) -> str | None:
-    if not isinstance(path, str):
-        return None
-
-    value = path.strip()
-    if not value:
-        return None
-
-    if not value.startswith("/"):
-        value = "/" + value
-
-    if value != "/":
-        value = value.rstrip("/")
-
-    return value

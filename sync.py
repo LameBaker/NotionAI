@@ -35,7 +35,7 @@ def main() -> int:
     args = parser.parse_args()
 
     env = load_env(dotenv_path=".env")
-    config = load_access_policy_config("configs/access_policies.yaml")
+    config = load_access_policy_config(env.config_path)
 
     notion = NotionClient(auth=env.notion_token, timeout_ms=60_000)
     store = ChromaVectorStore(persist_dir=".chroma_data")

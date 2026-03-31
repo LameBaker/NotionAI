@@ -22,6 +22,8 @@ def test_load_env_reads_required_values():
     assert config.notion_token == "ntn_test"
     assert config.google_credentials_path == "creds.json"
     assert config.google_admin_subject == "admin@test.com"
+    assert config.corporate_domain == "overgear.com"  # default
+    assert config.config_path == "configs/access_policies.yaml"  # default
 
 
 def test_load_env_raises_for_missing_required():
