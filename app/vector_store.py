@@ -6,7 +6,11 @@ from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunct
 from app.retrieval import RetrievalChunk
 
 # Multilingual model — good quality for Russian text
+# Requires "query: " prefix for queries and "passage: " prefix for documents
 EMBEDDING_MODEL = "intfloat/multilingual-e5-base"
+_PASSAGE_PREFIX = "passage: "
+_QUERY_PREFIX = "query: "
+_UPSERT_BATCH_SIZE = 500
 
 
 class ChromaVectorStore:
@@ -24,21 +28,33 @@ class ChromaVectorStore:
     def upsert_chunks(self, chunks: list[dict]) -> None:
         if not chunks:
             return
-        self._collection.upsert(
-            ids=[c["chunk_id"] for c in chunks],
-            documents=[c["text"] for c in chunks],
-            metadatas=[
-                {"page_id": c["page_id"], "root_id": c["root_id"], "title": c.get("title", "")}
-                for c in chunks
-            ],
-        )
+        for i in range(0, len(chunks), _UPSERT_BATCH_SIZE):
+            batch = chunks[i : i + _UPSERT_BATCH_SIZE]
+            self._collection.upsert(
+                ids=[c["chunk_id"] for c in batch],
+                documents=[f"{_PASSAGE_PREFIX}{c['text']}" for c in batch],
+                metadatas=[
+                    {
+                        "page_id": c["page_id"],
+                        "root_id": c["root_id"],
+                        "title": c.get("title", ""),
+                        "text": c["text"],  # store original text without prefix
+                    }
+                    for c in batch
+                ],
+            )
+
+    def delete_by_page_id(self, page_id: str) -> None:
+        """Delete all chunks for a given page (for stale chunk cleanup)."""
+        self._collection.delete(where={"page_id": page_id})
 
     def search(self, query: str, n_results: int = 5) -> list[RetrievalChunk]:
         if self._collection.count() == 0:
             return []
-        # e5 models work better with "query: " prefix for search queries
-        prefixed_query = f"query: {query}"
-        results = self._collection.query(query_texts=[prefixed_query], n_results=n_results)
+        results = self._collection.query(
+            query_texts=[f"{_QUERY_PREFIX}{query}"],
+            n_results=n_results,
+        )
         chunks = []
         for i, doc_id in enumerate(results["ids"][0]):
             meta = results["metadatas"][0][i]
@@ -46,7 +62,7 @@ class ChromaVectorStore:
                 RetrievalChunk(
                     page_id=meta["page_id"],
                     chunk_id=doc_id,
-                    text=results["documents"][0][i],
+                    text=meta.get("text", results["documents"][0][i]),  # prefer original text
                     root_id=meta.get("root_id", ""),
                 )
             )
