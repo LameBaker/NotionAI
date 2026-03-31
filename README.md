@@ -116,20 +116,23 @@ main.py                 # Bot entrypoint
 sync.py                 # Notion sync entrypoint
 app/
   bot.py                # Slack handler + QuestionHandler
-  llm.py                # Claude AI integration
-  vector_store.py       # ChromaDB wrapper
-  reranker.py           # BGE Reranker cross-encoder
-  notion_crawler.py     # Recursive page crawler + chunker
+  llm.py                # Claude AI integration (XML fencing, prompt injection mitigation)
+  vector_store.py       # ChromaDB wrapper (BGE-M3, batch upsert, parent-child chunks)
+  reranker.py           # BGE Reranker cross-encoder (top-20 → top-5)
+  hybrid_search.py      # Vector + BM25 search with Reciprocal Rank Fusion
+  query_rewriter.py     # Abbreviation expansion + LLM query rewriting
+  notion_crawler.py     # Recursive page crawler + chunker (toggles, callouts, databases)
   google_client.py      # Google Admin SDK client
   identity.py           # Email → OU resolver
-  policy.py             # ACL evaluator
-  config.py             # YAML config loader
-  models.py             # Data models
+  policy.py             # ACL evaluator (deny-by-default, allow-only)
+  config.py             # YAML config loader (OU groups, UUID validation)
+  models.py             # Data models (frozen dataclasses)
   env.py                # Environment config
   ou_utils.py           # OU path normalization
   retrieval.py          # RetrievalChunk model
 configs/
   access_policies.yaml  # ACL configuration
+  abbreviations.yaml    # Overgear abbreviation dictionary
 tests/                  # pytest tests
 scripts/                # Utility scripts
 docs/                   # Documentation
@@ -137,7 +140,7 @@ docs/                   # Documentation
 
 ## Key Docs
 
-- `docs/specs/2026-03-29-mvp-bot-design.md` — design spec
-- `docs/decisions.md` — architectural decisions (D-001 through D-019)
+- `docs/architecture.md` — component architecture and request/sync flows
+- `docs/decisions.md` — architectural decisions (D-001 through D-024)
 - `docs/project-state.md` — current project state
-- `docs/research-2026-03-31-rag-improvements.md` — RAG quality research
+- `docs/roadmap.md` — what's done and what's next
