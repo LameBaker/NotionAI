@@ -22,8 +22,8 @@ def _make_handler(
     identity = MagicMock()
     identity.resolve_org_unit_by_email.return_value = ou
 
-    vector_store = MagicMock()
-    vector_store.search.return_value = chunks or []
+    searcher = MagicMock()
+    searcher.search.return_value = chunks or []
 
     answer_gen = MagicMock(return_value=llm_answer)
 
@@ -51,7 +51,7 @@ def _make_handler(
 
     return QuestionHandler(
         identity_resolver=identity,
-        vector_store=vector_store,
+        searcher=searcher,
         answer_generator=answer_gen,
         reranker=reranker,
         root_policies=root_policies,

@@ -17,6 +17,8 @@ from app.google_client import RealGoogleDirectoryClient
 from app.identity import GoogleDirectoryIdentityResolver
 from app.llm import ClaudeAnswerGenerator
 from app.policy import evaluate_page_access
+from app.hybrid_search import HybridSearcher
+from app.query_rewriter import QueryRewriter
 from app.reranker import BGEReranker
 from app.retrieval import RetrievalChunk
 from app.vector_store import ChromaVectorStore
@@ -85,16 +87,18 @@ class QuestionHandler:
         self,
         *,
         identity_resolver,
-        vector_store,
+        searcher,
         answer_generator: Callable[[str, str], str],
         reranker,
+        query_rewriter=None,
         root_policies: dict,
         root_names: dict,
     ):
         self._identity_resolver = identity_resolver
-        self._vector_store = vector_store
+        self._searcher = searcher
         self._answer_generator = answer_generator
         self._reranker = reranker
+        self._query_rewriter = query_rewriter
         self._root_policies = root_policies
         self._root_names = root_names
 
@@ -133,8 +137,13 @@ class QuestionHandler:
         if not allowed_root_ids:
             return QuestionResult(error="У вас нет доступа к данным. Обратитесь к администратору.")
 
+        # Query rewriting for better search
+        search_query = question
+        if self._query_rewriter:
+            search_query = self._query_rewriter.rewrite(question)
+
         # Over-fetch for reranking — get top-20, ACL filter, rerank to top-5
-        raw_chunks = self._vector_store.search(question, n_results=20)
+        raw_chunks = self._searcher.search(search_query, n_results=20)
         authorized_chunks = [c for c in raw_chunks if c.root_id in allowed_root_ids]
         filtered_count = len(raw_chunks) - len(authorized_chunks)
 
@@ -223,12 +232,17 @@ def create_bot(env: EnvConfig) -> tuple[App, SocketModeHandler]:
     vector_store = ChromaVectorStore(persist_dir=chroma_path)
     answer_generator = ClaudeAnswerGenerator(api_key=env.anthropic_api_key)
     reranker = BGEReranker()
+    query_rewriter = QueryRewriter(api_key=env.anthropic_api_key)
+
+    # Hybrid search: vector + BM25 (BM25 index built lazily from ChromaDB data)
+    searcher = HybridSearcher(vector_store=vector_store)
 
     handler = QuestionHandler(
         identity_resolver=identity_resolver,
-        vector_store=vector_store,
+        searcher=searcher,
         answer_generator=answer_generator,
         reranker=reranker,
+        query_rewriter=query_rewriter,
         root_policies=root_policies,
         root_names=root_names,
     )
