@@ -8,9 +8,9 @@ from app.models import RootAccessPolicy
 from app.retrieval import RetrievalChunk
 
 
-HR_ROOT_ID = "hr-root-id"
-DEV_ROOT_ID = "dev-root-id"
-CURRENCY_ROOT_ID = "currency-root-id"
+HR_ROOT_ID = "00000000-0000-0000-0000-000000000001"
+DEV_ROOT_ID = "00000000-0000-0000-0000-000000000002"
+CURRENCY_ROOT_ID = "00000000-0000-0000-0000-000000000003"
 
 
 def _make_handler(
@@ -30,18 +30,18 @@ def _make_handler(
     root_policies = {
         HR_ROOT_ID: RootAccessPolicy(
             name="HR", page_id=HR_ROOT_ID,
-            allow_ou=["/Development", "/Management", "/Sales"],
-            allow_users=[],
+            allow_ou=("/Development", "/Management", "/Sales"),
+            allow_users=(),
         ),
         DEV_ROOT_ID: RootAccessPolicy(
             name="Development", page_id=DEV_ROOT_ID,
-            allow_ou=["/Development", "/Product"],
-            allow_users=[],
+            allow_ou=("/Development", "/Product"),
+            allow_users=(),
         ),
         CURRENCY_ROOT_ID: RootAccessPolicy(
             name="Currency Supply", page_id=CURRENCY_ROOT_ID,
-            allow_ou=["/Currency supply"],
-            allow_users=[],
+            allow_ou=("/Currency supply",),
+            allow_users=(),
         ),
     }
     root_names = {pid: p.name for pid, p in root_policies.items()}

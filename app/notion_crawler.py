@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import logging
+import re
 import time
 
 import httpx
 from notion_client import Client as NotionClient
 from notion_client.errors import APIResponseError
+
+MAX_CRAWL_DEPTH = 50
 
 log = logging.getLogger("notionai.crawler")
 
@@ -40,7 +43,6 @@ def chunk_text(text: str, max_chunk_size: int = 1000) -> list[str]:
 
 def _split_long_paragraph(text: str, max_size: int) -> list[str]:
     """Split a long paragraph by sentence boundaries, then by hard limit."""
-    import re
     sentences = re.split(r"(?<=[.!?。])\s+", text)
     chunks: list[str] = []
     current = ""
@@ -67,7 +69,7 @@ def crawl_root(client: NotionClient, root_page_id: str) -> list[dict]:
     """Recursively fetch all pages under a root. Returns list of {page_id, title, text}."""
     pages: list[dict] = []
     visited: set[str] = set()
-    _crawl_recursive(client, root_page_id, pages, visited)
+    _crawl_recursive(client, root_page_id, pages, visited, depth=0)
     return pages
 
 
@@ -120,9 +122,12 @@ def crawl_database(client: NotionClient, database_id: str, *, token: str = "") -
 
 
 def _crawl_recursive(
-    client: NotionClient, page_id: str, pages: list[dict], visited: set[str]
+    client: NotionClient, page_id: str, pages: list[dict], visited: set[str], *, depth: int = 0
 ) -> None:
     if page_id in visited:
+        return
+    if depth > MAX_CRAWL_DEPTH:
+        log.warning("Max crawl depth %d reached at page %s, stopping", MAX_CRAWL_DEPTH, page_id)
         return
     visited.add(page_id)
     page = _retry_api_call(lambda: client.pages.retrieve(page_id))
@@ -151,7 +156,7 @@ def _crawl_recursive(
         })
 
     for child_id in child_page_ids:
-        _crawl_recursive(client, child_id, pages, visited)
+        _crawl_recursive(client, child_id, pages, visited, depth=depth + 1)
 
 
 def _process_blocks(

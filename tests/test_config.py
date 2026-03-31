@@ -16,7 +16,7 @@ def test_load_access_policy_config_from_repo_file() -> None:
     assert config.roots[0].name == "HR"
     assert "/Development" in config.roots[0].allow_ou  # resolved from group
     assert config.roots[1].name == "Development"
-    assert config.roots[1].allow_ou == ["/Development", "/Product"]
+    assert config.roots[1].allow_ou == ("/Development", "/Product")
 
 
 def test_load_access_policy_config_requires_deny_all_default(tmp_path: Path) -> None:
@@ -26,7 +26,7 @@ def test_load_access_policy_config_requires_deny_all_default(tmp_path: Path) -> 
 default: allow_all
 roots:
   - name: HR
-    page_id: "page-id"
+    page_id: "00000000-0000-0000-0000-000000000000"
     allow_ou:
       - "/"
     allow_users: []
@@ -50,12 +50,12 @@ groups:
 
 roots:
   - name: HR
-    page_id: "hr-page"
+    page_id: "00000000-0000-0000-0000-000000000001"
     allow_ou_group: all_internal
     allow_users: []
 
   - name: Dev
-    page_id: "dev-page"
+    page_id: "00000000-0000-0000-0000-000000000002"
     allow_ou:
       - "/Development"
     allow_users: []
@@ -65,6 +65,23 @@ roots:
     config = load_access_policy_config(config_path)
 
     assert config.roots[0].name == "HR"
-    assert config.roots[0].allow_ou == ["/Development", "/Sales"]
+    assert config.roots[0].allow_ou == ("/Development", "/Sales")
     assert config.roots[1].name == "Dev"
-    assert config.roots[1].allow_ou == ["/Development"]
+    assert config.roots[1].allow_ou == ("/Development",)
+
+
+def test_load_access_policy_config_rejects_invalid_page_id(tmp_path: Path) -> None:
+    config_path = tmp_path / "access_policies.yaml"
+    config_path.write_text(
+        """
+default: deny_all
+roots:
+  - name: Bad
+    page_id: "not-a-uuid"
+    allow_ou: ["/"]
+    allow_users: []
+""".strip()
+    )
+
+    with pytest.raises(ValueError, match="invalid page_id"):
+        load_access_policy_config(config_path)

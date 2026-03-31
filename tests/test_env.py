@@ -29,6 +29,11 @@ def test_load_env_reads_required_values():
 
 
 def test_load_env_raises_for_missing_required():
-    with patch.dict(os.environ, {}, clear=True):
+    # Unset only the required keys (keep PATH, HOME, etc. intact)
+    unset = {k: "" for k in [
+        "SLACK_BOT_TOKEN", "SLACK_APP_TOKEN", "ANTHROPIC_API_KEY",
+        "NOTION_TOKEN", "GOOGLE_APPLICATION_CREDENTIALS", "GOOGLE_ADMIN_SUBJECT",
+    ]}
+    with patch.dict(os.environ, unset, clear=False):
         with pytest.raises(ValueError, match="SLACK_BOT_TOKEN"):
             load_env()

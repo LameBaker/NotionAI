@@ -5,9 +5,9 @@ from app.policy import evaluate_page_access
 def _root_policy(*, allow_ou: list[str], allow_users: list[str]) -> RootAccessPolicy:
     return RootAccessPolicy(
         name="root",
-        page_id="root-page",
-        allow_ou=allow_ou,
-        allow_users=allow_users,
+        page_id="00000000-0000-0000-0000-000000000000",
+        allow_ou=tuple(allow_ou),
+        allow_users=tuple(allow_users),
     )
 
 

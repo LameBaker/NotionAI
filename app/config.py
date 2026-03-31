@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Any
 
 import yaml
+
+_UUID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", re.IGNORECASE)
 
 from app.models import AccessPolicyConfig, RootAccessPolicy
 
@@ -25,7 +28,7 @@ def load_access_policy_config(path: Path | str) -> AccessPolicyConfig:
     if not isinstance(raw_roots, list):
         raise ValueError("roots must be a list")
 
-    roots = [_build_root_policy(item, groups) for item in raw_roots]
+    roots = tuple(_build_root_policy(item, groups) for item in raw_roots)
     return AccessPolicyConfig(default=default, roots=roots)
 
 
@@ -56,6 +59,8 @@ def _build_root_policy(payload: Any, groups: dict[str, list[str]]) -> RootAccess
 
     if not name or not page_id:
         raise ValueError("root entries require name and page_id")
+    if not _UUID_RE.match(page_id):
+        raise ValueError(f"root '{name}' has invalid page_id (expected UUID): {page_id}")
     if not isinstance(allow_ou, list) or not isinstance(allow_users, list):
         raise ValueError("allow_ou and allow_users must be lists")
 
@@ -64,7 +69,7 @@ def _build_root_policy(payload: Any, groups: dict[str, list[str]]) -> RootAccess
     return RootAccessPolicy(
         name=name,
         page_id=page_id,
-        allow_ou=[str(item) for item in allow_ou],
-        allow_users=[str(item) for item in allow_users],
+        allow_ou=tuple(str(item) for item in allow_ou),
+        allow_users=tuple(str(item) for item in allow_users),
         root_type=root_type,
     )
