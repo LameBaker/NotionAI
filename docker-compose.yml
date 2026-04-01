@@ -1,0 +1,23 @@
+version: "3.8"
+
+services:
+  bot:
+    build: .
+    env_file: .env
+    volumes:
+      - .chroma_data:/app/.chroma_data
+      - ./configs:/app/configs
+      - ./credentials:/app/credentials
+    restart: unless-stopped
+    command: python main.py
+
+  sync:
+    build: .
+    env_file: .env
+    volumes:
+      - .chroma_data:/app/.chroma_data
+      - ./configs:/app/configs
+      - ./credentials:/app/credentials
+    command: python sync.py
+    profiles:
+      - sync  # Run manually: docker compose run sync

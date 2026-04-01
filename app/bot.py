@@ -23,6 +23,7 @@ from app.hybrid_search import HybridSearcher
 from app.query_rewriter import QueryRewriter
 from app.reranker import BGEReranker
 from app.retrieval import RetrievalChunk
+from app.semantic_cache import SemanticCache
 from app.vector_store import ChromaVectorStore
 
 log = logging.getLogger("notionai")
@@ -93,6 +94,7 @@ class QuestionHandler:
         answer_generator: Callable[[str, str], str],
         reranker,
         query_rewriter=None,
+        cache=None,
         root_policies: dict,
         root_names: dict,
     ):
@@ -101,6 +103,7 @@ class QuestionHandler:
         self._answer_generator = answer_generator
         self._reranker = reranker
         self._query_rewriter = query_rewriter
+        self._cache = cache
         self._root_policies = root_policies
         self._root_names = root_names
 
@@ -111,11 +114,22 @@ class QuestionHandler:
         if not user_email:
             return QuestionResult(error="Не удалось определить ваш email. Обратитесь к администратору.")
 
-        try:
-            user_ou = self._identity_resolver.resolve_org_unit_by_email(user_email)
-        except Exception as exc:
-            log.error("OU resolution failed for %s: %s", user_email, exc)
-            user_ou = None
+        # Check semantic cache first
+        if self._cache:
+            cached = self._cache.get(question)
+            if cached:
+                return QuestionResult(answer=cached, sources=[])
+
+        # Retry OU resolution (transient SSL/network errors)
+        user_ou = None
+        for attempt in range(3):
+            try:
+                user_ou = self._identity_resolver.resolve_org_unit_by_email(user_email)
+                break
+            except Exception as exc:
+                log.warning("OU resolution attempt %d failed for %s: %s", attempt + 1, user_email, exc)
+                if attempt < 2:
+                    time.sleep(1)
 
         if not user_ou:
             log.warning("No OU for %s", user_email)
@@ -190,6 +204,10 @@ class QuestionHandler:
             log.exception("LLM error")
             return QuestionResult(error="Ошибка при генерации ответа. Попробуйте позже.")
 
+        # Cache the answer
+        if self._cache:
+            self._cache.put(question, answer)
+
         elapsed = time.time() - t0
         log.info("Answered in %.1fs (%d chars, %d sources)", elapsed, len(answer), len(sources))
 
@@ -240,6 +258,25 @@ def _format_slack_blocks(result: QuestionResult) -> dict:
                 "elements": buttons,
             })
 
+    # Feedback buttons
+    blocks.append({
+        "type": "actions",
+        "elements": [
+            {
+                "type": "button",
+                "text": {"type": "plain_text", "text": "👍 Полезно", "emoji": True},
+                "action_id": "feedback_positive",
+                "style": "primary",
+            },
+            {
+                "type": "button",
+                "text": {"type": "plain_text", "text": "👎 Не то", "emoji": True},
+                "action_id": "feedback_negative",
+                "style": "danger",
+            },
+        ],
+    })
+
     return {"blocks": blocks, "text": result.answer[:200]}
 
 
@@ -274,14 +311,18 @@ def create_bot(env: EnvConfig) -> tuple[App, SocketModeHandler]:
         answer_generator=answer_generator,
         reranker=reranker,
         query_rewriter=query_rewriter,
+        cache=cache,
         root_policies=root_policies,
         root_names=root_names,
     )
 
     notion_client = NotionClient(auth=env.notion_token, timeout_ms=60_000)
+    cache = SemanticCache(vector_store=vector_store)
 
     dedup = _ThreadSafeDedup(maxsize=1000)
     rate_limiter = _RateLimiter()
+    # Simple conversation history per user (last question)
+    _conversation: dict[str, str] = {}
 
     @app.event("message")
     def handle_dm(event, say, client):
@@ -317,6 +358,54 @@ def create_bot(env: EnvConfig) -> tuple[App, SocketModeHandler]:
 
         result = handler.handle(user_email=user_email, question=question)
         response = _format_slack_blocks(result)
+        say(**response)
+
+    # Feedback handlers
+    @app.action("feedback_positive")
+    def handle_feedback_positive(ack, body):
+        ack()
+        user = body.get("user", {}).get("name", "unknown")
+        log.info("Feedback: 👍 from %s", user)
+
+    @app.action("feedback_negative")
+    def handle_feedback_negative(ack, body):
+        ack()
+        user = body.get("user", {}).get("name", "unknown")
+        log.info("Feedback: 👎 from %s", user)
+
+    # Status command
+    @app.message(re.compile(r"^(status|статус)$", re.IGNORECASE))
+    def handle_status(message, say):
+        chunk_count = vector_store._collection.count()
+        root_count = len(config.roots)
+        cache_count = cache._collection.count() if cache else 0
+        say(
+            f"📊 *NotionAI Status*\n"
+            f"• Roots: {root_count}\n"
+            f"• Chunks indexed: {chunk_count:,}\n"
+            f"• Cached answers: {cache_count}\n"
+            f"• Model: BGE-M3 + BGE Reranker + Claude Haiku"
+        )
+
+    # Handle @mention in channels
+    @app.event("app_mention")
+    def handle_mention(event, say, client):
+        question = re.sub(r"<@[A-Z0-9]+>\s*", "", event.get("text", "")).strip()
+        if not question:
+            say(text="Задайте вопрос после @mention.", thread_ts=event.get("ts"))
+            return
+
+        user_id = event.get("user", "")
+        try:
+            user_info = client.users_info(user=user_id)
+            user_email = user_info["user"]["profile"].get("email", "")
+        except Exception:
+            say(text="Не удалось определить ваш профиль.", thread_ts=event.get("ts"))
+            return
+
+        result = handler.handle(user_email=user_email, question=question)
+        response = _format_slack_blocks(result)
+        response["thread_ts"] = event.get("ts")  # Reply in thread
         say(**response)
 
     @app.action(re.compile(r"show_full_text_.*"))

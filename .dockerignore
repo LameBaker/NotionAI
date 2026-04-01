@@ -1,0 +1,14 @@
+.venv/
+.chroma_data/
+.sync_state.json
+.sync_lock
+.env
+credentials/
+mcp/
+.git/
+__pycache__/
+.pytest_cache/
+*.pyc
+docs/rights/
+docs/Google OU/
+.DS_Store
