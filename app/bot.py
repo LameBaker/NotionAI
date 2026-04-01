@@ -173,8 +173,11 @@ class QuestionHandler:
         if not authorized_chunks:
             return QuestionResult(error="К сожалению, я не нашёл релевантную информацию по вашему вопросу.")
 
-        # Rerank authorized chunks for better relevance
-        reranked = self._reranker.rerank(question, authorized_chunks, top_k=5)
+        # Rerank authorized chunks for better relevance (with OU boost)
+        reranked = self._reranker.rerank(
+            question, authorized_chunks, top_k=5,
+            user_ou=user_ou, root_names=self._root_names,
+        )
 
         for i, c in enumerate(reranked):
             rname = self._root_names.get(c.root_id, c.root_id[:8])

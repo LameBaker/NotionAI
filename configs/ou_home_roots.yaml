@@ -1,0 +1,30 @@
+# Mapping: Google OU path → "home" Notion root names
+# When a user from this OU asks a question, chunks from their home root get a boost
+# This helps surface department-specific content over generic results
+
+ou_home_roots:
+  "/Development": ["Development"]
+  "/Development/Devs": ["Development"]
+  "/Development/QA": ["Development"]
+  "/Development/SA": ["Development"]
+  "/Product": ["Development"]
+  "/Product/Analytics": ["Development"]
+  "/Product/Design": ["Development"]
+  "/Product/Product Managers": ["Development"]
+  "/Game performance/Content": ["Content"]
+  "/Game performance/Game leads": ["Gameleads"]
+  "/Game performance/Marketing": ["Marketing"]
+  "/Sales": ["Sales"]
+  "/Sales/Boosting sales": ["Sales", "Green Team"]
+  "/Sales/Currency sales": ["Sales", "Currency Supply"]
+  "/Boosting Supply": ["Green Team"]
+  "/Boosting Supply/Supply - Black team": ["Green Team"]
+  "/Boosting Supply/Supply - Green team": ["Green Team"]
+  "/Currency supply": ["Currency Supply"]
+  "/Customer Care & Support": ["Customer Care"]
+  "/Customer Care & Support/Customer Care": ["Customer Care"]
+  "/Customer Care & Support/Support": ["Customer Care", "Operations"]
+  "/Management": ["Operations"]
+  "/Management/Finance": ["Operations"]
+  "/Management/HR": ["HR"]
+  "/Service": ["Operations"]
