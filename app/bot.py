@@ -324,8 +324,8 @@ def create_bot(env: EnvConfig) -> tuple[App, SocketModeHandler]:
 
     dedup = _ThreadSafeDedup(maxsize=1000)
     rate_limiter = _RateLimiter()
-    # Simple conversation history per user (last question)
-    _conversation: dict[str, str] = {}
+    # Conversation history: user_id → last question (for follow-ups)
+    _last_question: dict[str, str] = {}
 
     @app.event("message")
     def handle_dm(event, say, client):
@@ -360,6 +360,16 @@ def create_bot(env: EnvConfig) -> tuple[App, SocketModeHandler]:
             return
 
         user_id = event.get("user", "")
+
+        # Follow-up detection: if short question and we have previous context, enrich it
+        _FOLLOW_UP_WORDS = {"подробнее", "ещё", "еще", "а что", "расскажи", "дальше", "почему", "как именно", "пункт"}
+        if len(question.split()) <= 5 and user_id in _last_question:
+            is_followup = any(w in question.lower() for w in _FOLLOW_UP_WORDS)
+            if is_followup:
+                question = f"{_last_question[user_id]} — {question}"
+                log.info("Follow-up detected, enriched: %r", question)
+
+        _last_question[user_id] = question
 
         # Rate limit per user
         if not rate_limiter.is_allowed(user_id):

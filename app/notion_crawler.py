@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import re
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import httpx
 from notion_client import Client as NotionClient
@@ -74,11 +75,69 @@ def _split_long_paragraph(text: str, max_size: int) -> list[str]:
     return result
 
 
-def crawl_root(client: NotionClient, root_page_id: str) -> list[dict]:
-    """Recursively fetch all pages under a root. Returns list of {page_id, title, text}."""
-    pages: list[dict] = []
+def crawl_root(client: NotionClient, root_page_id: str, max_workers: int = 3) -> list[dict]:
+    """Recursively fetch all pages under a root with parallel processing."""
     visited: set[str] = set()
-    _crawl_recursive(client, root_page_id, pages, visited, depth=0)
+    pages: list[dict] = []
+    lock = __import__("threading").Lock()
+
+    def _process_page(page_id: str, depth: int) -> list[str]:
+        """Process one page, return child page IDs to crawl next."""
+        with lock:
+            if page_id in visited:
+                return []
+            visited.add(page_id)
+
+        if depth > MAX_CRAWL_DEPTH:
+            log.warning("Max crawl depth %d reached at page %s", MAX_CRAWL_DEPTH, page_id)
+            return []
+
+        page = _retry_api_call(lambda: client.pages.retrieve(page_id))
+        if page is None:
+            log.warning("Skipping page %s (failed to retrieve)", page_id)
+            return []
+
+        title = _extract_page_title(page)
+        last_edited = page.get("last_edited_time", "")
+        blocks = _get_all_blocks(client, page_id)
+
+        parts: list[str] = []
+        child_page_ids: list[str] = []
+        heading_trail: list[str] = []
+        _process_blocks(client, blocks, parts, child_page_ids, heading_trail)
+
+        text = "\n\n".join(parts)
+        if text.strip():
+            with lock:
+                pages.append({
+                    "page_id": page_id,
+                    "title": title,
+                    "text": text,
+                    "last_edited_time": last_edited,
+                })
+
+        return [(cid, depth + 1) for cid in child_page_ids]
+
+    # BFS with thread pool
+    queue = [(root_page_id, 0)]
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        while queue:
+            # Submit batch
+            futures = {}
+            batch = queue[:max_workers * 2]
+            queue = queue[max_workers * 2:]
+
+            for page_id, depth in batch:
+                fut = executor.submit(_process_page, page_id, depth)
+                futures[fut] = page_id
+
+            for fut in as_completed(futures):
+                try:
+                    children = fut.result()
+                    queue.extend(children)
+                except Exception:
+                    log.exception("Error processing page %s", futures[fut])
+
     return pages
 
 
@@ -129,43 +188,6 @@ def crawl_database(client: NotionClient, database_id: str, *, token: str) -> lis
 
     return pages
 
-
-def _crawl_recursive(
-    client: NotionClient, page_id: str, pages: list[dict], visited: set[str], *, depth: int = 0
-) -> None:
-    if page_id in visited:
-        return
-    if depth > MAX_CRAWL_DEPTH:
-        log.warning("Max crawl depth %d reached at page %s, stopping", MAX_CRAWL_DEPTH, page_id)
-        return
-    visited.add(page_id)
-    page = _retry_api_call(lambda: client.pages.retrieve(page_id))
-    if page is None:
-        log.warning("Skipping page %s (failed to retrieve)", page_id)
-        return
-
-    title = _extract_page_title(page)
-    last_edited = page.get("last_edited_time", "")
-    blocks = _get_all_blocks(client, page_id)
-
-    # Extract text and discover child pages (including inside columns/callouts)
-    parts: list[str] = []
-    child_page_ids: list[str] = []
-    heading_trail: list[str] = []
-
-    _process_blocks(client, blocks, parts, child_page_ids, heading_trail)
-
-    text = "\n\n".join(parts)
-    if text.strip():
-        pages.append({
-            "page_id": page_id,
-            "title": title,
-            "text": text,
-            "last_edited_time": last_edited,
-        })
-
-    for child_id in child_page_ids:
-        _crawl_recursive(client, child_id, pages, visited, depth=depth + 1)
 
 
 def _process_blocks(

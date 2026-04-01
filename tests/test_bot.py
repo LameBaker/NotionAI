@@ -47,13 +47,14 @@ def _make_handler(
     root_names = {pid: p.name for pid, p in root_policies.items()}
 
     reranker = MagicMock()
-    reranker.rerank.side_effect = lambda q, chunks, top_k=5: chunks[:top_k]
+    reranker.rerank.side_effect = lambda q, chunks, top_k=5, **kwargs: chunks[:top_k]
 
     return QuestionHandler(
         identity_resolver=identity,
         searcher=searcher,
         answer_generator=answer_gen,
         reranker=reranker,
+        cache=None,
         root_policies=root_policies,
         root_names=root_names,
     )
