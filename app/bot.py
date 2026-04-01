@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 import threading
 import time
 from collections import OrderedDict
@@ -8,6 +9,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable
 
+from notion_client import Client as NotionClient
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 
@@ -177,6 +179,7 @@ class QuestionHandler:
                     "index": i + 1,
                     "title": c.title,
                     "url": c.page_url,
+                    "page_id": c.page_id,
                 })
 
         context = "\n\n".join(context_parts)
@@ -193,24 +196,51 @@ class QuestionHandler:
         return QuestionResult(answer=answer, sources=sources)
 
 
-def _format_slack_response(result: QuestionResult) -> str:
-    """Format answer with source citations for Slack."""
+def _format_slack_blocks(result: QuestionResult) -> dict:
+    """Format answer as Slack Block Kit with 'Show full text' buttons."""
     if result.error:
-        return result.error
+        return {"text": result.error}
 
-    parts = [result.answer]
+    blocks: list[dict] = [
+        {"type": "section", "text": {"type": "mrkdwn", "text": result.answer[:3000]}},
+    ]
 
     if result.sources:
         source_lines = []
         for s in result.sources:
-            if s.get("url"):
-                source_lines.append(f"• <{s['url']}|{s.get('title', 'Страница')}>")
-            elif s.get("title"):
-                source_lines.append(f"• {s['title']}")
-        if source_lines:
-            parts.append("\n📚 *Источники:*\n" + "\n".join(source_lines))
+            title = s.get("title", "Страница")
+            url = s.get("url", "")
+            if url:
+                source_lines.append(f"• <{url}|{title}>")
+            else:
+                source_lines.append(f"• {title}")
 
-    return "\n".join(parts)
+        blocks.append({"type": "divider"})
+        blocks.append({
+            "type": "section",
+            "text": {"type": "mrkdwn", "text": "📚 *Источники:*\n" + "\n".join(source_lines)},
+        })
+
+        # Add "Show full text" buttons for top sources
+        buttons = []
+        for s in result.sources[:3]:
+            page_id = s.get("page_id", "")
+            title = s.get("title", "Страница")
+            if page_id:
+                buttons.append({
+                    "type": "button",
+                    "text": {"type": "plain_text", "text": f"📄 {title[:30]}", "emoji": True},
+                    "action_id": f"show_full_text_{page_id}",
+                    "value": page_id,
+                })
+
+        if buttons:
+            blocks.append({
+                "type": "actions",
+                "elements": buttons,
+            })
+
+    return {"blocks": blocks, "text": result.answer[:200]}
 
 
 def create_bot(env: EnvConfig) -> tuple[App, SocketModeHandler]:
@@ -248,6 +278,8 @@ def create_bot(env: EnvConfig) -> tuple[App, SocketModeHandler]:
         root_names=root_names,
     )
 
+    notion_client = NotionClient(auth=env.notion_token, timeout_ms=60_000)
+
     dedup = _ThreadSafeDedup(maxsize=1000)
     rate_limiter = _RateLimiter()
 
@@ -284,7 +316,86 @@ def create_bot(env: EnvConfig) -> tuple[App, SocketModeHandler]:
             return
 
         result = handler.handle(user_email=user_email, question=question)
-        say(_format_slack_response(result))
+        response = _format_slack_blocks(result)
+        say(**response)
+
+    @app.action(re.compile(r"show_full_text_.*"))
+    def handle_show_full_text(ack, body, client):
+        ack()
+        action = body["actions"][0]
+        page_id = action["value"]
+        trigger_id = body["trigger_id"]
+
+        # Show loading modal
+        modal_resp = client.views_open(
+            trigger_id=trigger_id,
+            view={
+                "type": "modal",
+                "title": {"type": "plain_text", "text": "Загрузка..."},
+                "blocks": [{"type": "section", "text": {"type": "mrkdwn", "text": "⏳ Подгружаю страницу из Notion..."}}],
+            },
+        )
+        view_id = modal_resp["view"]["id"]
+
+        # Fetch full page text from Notion (live)
+        try:
+            from app.notion_crawler import _get_all_blocks, _extract_rich_text, _extract_page_title
+
+            page = notion_client.pages.retrieve(page_id)
+            title = _extract_page_title(page)
+            blocks = _get_all_blocks(notion_client, page_id)
+
+            parts: list[str] = []
+            for block in blocks:
+                block_type = block.get("type", "")
+                if block_type in ("child_page", "child_database"):
+                    continue
+                text = _extract_rich_text(block)
+                if text:
+                    parts.append(text)
+                # Fetch children (toggles, callouts)
+                if block.get("has_children"):
+                    bid = block.get("id", "")
+                    if bid:
+                        children = _get_all_blocks(notion_client, bid)
+                        for child in children:
+                            ct = _extract_rich_text(child)
+                            if ct:
+                                parts.append(ct)
+
+            full_text = "\n\n".join(parts)
+        except Exception:
+            log.exception("Failed to fetch page %s", page_id)
+            full_text = "Не удалось загрузить страницу."
+            title = "Ошибка"
+
+        # Split into Slack modal blocks (max 50 blocks, 3000 chars each)
+        modal_blocks: list[dict] = []
+        for i in range(0, len(full_text), 3000):
+            chunk = full_text[i : i + 3000]
+            modal_blocks.append({
+                "type": "section",
+                "text": {"type": "mrkdwn", "text": chunk},
+            })
+            if len(modal_blocks) >= 48:
+                modal_blocks.append({
+                    "type": "section",
+                    "text": {"type": "mrkdwn", "text": "_...текст обрезан (слишком длинная страница)_"},
+                })
+                break
+
+        if not modal_blocks:
+            modal_blocks = [{"type": "section", "text": {"type": "mrkdwn", "text": "Страница пустая."}}]
+
+        # Update modal with content
+        client.views_update(
+            view_id=view_id,
+            view={
+                "type": "modal",
+                "title": {"type": "plain_text", "text": (title or "Страница")[:24]},
+                "blocks": modal_blocks,
+            },
+        )
 
     socket_handler = SocketModeHandler(app, env.slack_app_token)
     return app, socket_handler
