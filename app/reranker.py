@@ -14,8 +14,10 @@ log = logging.getLogger("notionai.reranker")
 # BGE Reranker — proven combo with BGE-M3 on Russian benchmarks
 _DEFAULT_MODEL = "BAAI/bge-reranker-v2-m3"
 
-# Boost multiplier for chunks from user's "home" root
-_HOME_ROOT_BOOST = 0.15
+# Boost for chunks from user's "home" root
+_HOME_ROOT_BOOST = 0.2
+# Penalty for chunks from department-specific roots that are NOT the user's home
+_OTHER_DEPT_PENALTY = 0.08
 
 
 def _load_ou_home_roots(path: str = "configs/ou_home_roots.yaml") -> dict[str, list[str]]:
@@ -67,15 +69,25 @@ class BGEReranker:
 
         _ARCHIVE_PENALTY = 0.1
 
+        # Department-specific roots (not general-purpose)
+        _DEPT_SPECIFIC = {"Development", "Customer Care", "Currency Supply", "Content",
+                          "Gameleads", "Green Team", "Sales", "Marketing"}
+
         boosted_scores = []
         for i, (score, chunk) in enumerate(zip(scores, chunks)):
             chunk_root_name = (root_names or {}).get(chunk.root_id, "")
+
             if chunk_root_name in home_root_names:
                 score = score + _HOME_ROOT_BOOST
+            elif chunk_root_name in _DEPT_SPECIFIC and home_root_names:
+                # Department-specific content from another department — penalize
+                score = score - _OTHER_DEPT_PENALTY
+
             # Penalize archive pages
             title_lower = (chunk.title or "").lower()
             if "архив" in title_lower or "archive" in title_lower or "(old)" in title_lower:
                 score = score - _ARCHIVE_PENALTY
+
             boosted_scores.append((score, chunk))
 
         if home_root_names:
