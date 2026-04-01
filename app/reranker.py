@@ -24,11 +24,21 @@ class BGEReranker:
         if len(chunks) <= top_k:
             return chunks
 
-        pairs = [(query, chunk.text) for chunk in chunks]
+        # Use parent_text for reranking — more context = better scoring
+        pairs = [(query, chunk.parent_text if chunk.parent_text else chunk.text) for chunk in chunks]
         scores = self._model.predict(pairs)
 
         scored = sorted(zip(scores, chunks), key=lambda x: x[0], reverse=True)
-        reranked = [chunk for _, chunk in scored[:top_k]]
+
+        # Deduplicate: keep best chunk per page_id
+        seen_pages: set[str] = set()
+        reranked: list[RetrievalChunk] = []
+        for _, chunk in scored:
+            if chunk.page_id not in seen_pages:
+                seen_pages.add(chunk.page_id)
+                reranked.append(chunk)
+                if len(reranked) >= top_k:
+                    break
 
         log.info("Reranked %d → %d chunks (top score: %.3f, bottom: %.3f)",
                  len(chunks), len(reranked), scored[0][0], scored[min(top_k - 1, len(scored) - 1)][0])
