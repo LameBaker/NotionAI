@@ -65,11 +65,17 @@ class BGEReranker:
                     break
                 ou = ou.rsplit("/", 1)[0] if "/" in ou else ""
 
+        _ARCHIVE_PENALTY = 0.1
+
         boosted_scores = []
         for i, (score, chunk) in enumerate(zip(scores, chunks)):
             chunk_root_name = (root_names or {}).get(chunk.root_id, "")
             if chunk_root_name in home_root_names:
                 score = score + _HOME_ROOT_BOOST
+            # Penalize archive pages
+            title_lower = (chunk.title or "").lower()
+            if "архив" in title_lower or "archive" in title_lower or "(old)" in title_lower:
+                score = score - _ARCHIVE_PENALTY
             boosted_scores.append((score, chunk))
 
         if home_root_names:
