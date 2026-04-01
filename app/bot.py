@@ -304,6 +304,8 @@ def create_bot(env: EnvConfig) -> tuple[App, SocketModeHandler]:
 
     # Hybrid search: vector + BM25 (BM25 index built lazily from ChromaDB data)
     searcher = HybridSearcher(vector_store=vector_store)
+    cache = SemanticCache(vector_store=vector_store)
+    notion_client = NotionClient(auth=env.notion_token, timeout_ms=60_000)
 
     handler = QuestionHandler(
         identity_resolver=identity_resolver,
@@ -315,9 +317,6 @@ def create_bot(env: EnvConfig) -> tuple[App, SocketModeHandler]:
         root_policies=root_policies,
         root_names=root_names,
     )
-
-    notion_client = NotionClient(auth=env.notion_token, timeout_ms=60_000)
-    cache = SemanticCache(vector_store=vector_store)
 
     dedup = _ThreadSafeDedup(maxsize=1000)
     rate_limiter = _RateLimiter()
