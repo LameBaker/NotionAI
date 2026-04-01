@@ -29,8 +29,8 @@ class SemanticCache:
         )
         log.info("Semantic cache initialized (TTL=%ds)", ttl)
 
-    def get(self, query: str) -> dict | None:
-        """Check cache for a similar query. Returns {answer, sources} or None."""
+    def get(self, query: str, user_ou: str = "") -> dict | None:
+        """Check cache for a similar query from same OU. Returns {answer, sources} or None."""
         with self._lock:
             if self._collection.count() == 0:
                 return None
@@ -55,19 +55,24 @@ class SemanticCache:
                 self._collection.delete(ids=[results["ids"][0][0]])
                 return None
 
+            # Check OU matches
+            cached_ou = meta.get("user_ou", "")
+            if cached_ou != user_ou:
+                return None
+
             answer = meta.get("answer", "")
             try:
                 sources = json.loads(meta.get("sources_json", "[]"))
             except Exception:
                 sources = []
 
-            log.info("Cache HIT (similarity=%.3f): %s", similarity, query[:50])
+            log.info("Cache HIT (similarity=%.3f, ou=%s): %s", similarity, user_ou, query[:50])
             return {"answer": answer, "sources": sources}
 
-    def put(self, query: str, answer: str, sources: list[dict] | None = None) -> None:
-        """Cache an answer with sources for a query."""
+    def put(self, query: str, answer: str, sources: list[dict] | None = None, user_ou: str = "") -> None:
+        """Cache an answer with sources for a query, scoped by OU."""
         with self._lock:
-            cache_id = f"cache_{hash(query) & 0xFFFFFFFF}"
+            cache_id = f"cache_{hash(query + user_ou) & 0xFFFFFFFF}"
             try:
                 sources_json = json.dumps(sources or [], ensure_ascii=False)[:3000]
                 self._collection.upsert(
@@ -76,6 +81,7 @@ class SemanticCache:
                     metadatas=[{
                         "answer": answer[:3000],
                         "sources_json": sources_json,
+                        "user_ou": user_ou,
                         "cached_at": str(time.time()),
                     }],
                 )

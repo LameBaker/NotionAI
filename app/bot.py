@@ -114,12 +114,6 @@ class QuestionHandler:
         if not user_email:
             return QuestionResult(error="Не удалось определить ваш email. Обратитесь к администратору.")
 
-        # Check semantic cache first
-        if self._cache:
-            cached = self._cache.get(question)
-            if cached:
-                return QuestionResult(answer=cached["answer"], sources=cached.get("sources", []))
-
         # Retry OU resolution (transient SSL/network errors)
         user_ou = None
         for attempt in range(3):
@@ -136,6 +130,13 @@ class QuestionHandler:
             return QuestionResult(error="Не удалось определить ваш отдел. Обратитесь к администратору.")
 
         log.info("User %s → OU: %s", user_email, user_ou)
+
+        # Check semantic cache (scoped by OU — different departments get different answers)
+        if self._cache:
+            cached = self._cache.get(question, user_ou=user_ou)
+            if cached:
+                log.info("Cache hit for %s (OU: %s)", user_email, user_ou)
+                return QuestionResult(answer=cached["answer"], sources=cached.get("sources", []))
 
         # Find which roots this user can access
         allowed_root_ids = set()
@@ -207,9 +208,9 @@ class QuestionHandler:
             log.exception("LLM error")
             return QuestionResult(error="Ошибка при генерации ответа. Попробуйте позже.")
 
-        # Cache the answer with sources
+        # Cache the answer with sources (scoped by OU)
         if self._cache:
-            self._cache.put(question, answer, sources)
+            self._cache.put(question, answer, sources, user_ou=user_ou)
 
         elapsed = time.time() - t0
         log.info("Answered in %.1fs (%d chars, %d sources)", elapsed, len(answer), len(sources))
