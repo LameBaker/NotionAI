@@ -1,47 +1,52 @@
 # Project State
 
 ## Phase
-MVP complete. Sync running overnight with BGE-M3. Ready for user testing.
+Feature-complete MVP. Paused — company may migrate from Notion to ClickUp.
 
-## What's Done
-- Slack bot (Socket Mode, DM-only) with full pipeline
-- Google Directory OU resolution
-- BGE-M3 embeddings (best for Russian per 2025 benchmarks)
-- ChromaDB vector search (search_ef=50, batch upsert)
-- BGE Reranker cross-encoder (top-20 → top-5)
-- Claude Haiku answer generation with XML prompt fencing
-- Citations with clickable Notion page links
-- ACL: allow-only, OU groups, deny-by-default
-- 15 root pages + 2 databases in config
-- Recursive crawler (toggles, callouts, columns, child pages, databases)
+## What's Built
+- Slack bot (Socket Mode, DM + channel @mention)
+- Google Directory OU resolution (with retry)
+- BGE-M3 embeddings + BGE Reranker cross-encoder
+- Hybrid search (vector + BM25 + RRF fusion)
+- Query rewriting (abbreviation expansion + LLM)
+- OU-based reranker boost (department content prioritized)
+- Archive/other-department penalty in ranking
+- Parent-child chunks (300 char search → 1500 char LLM context)
 - Chunk overlap 10%
-- Incremental sync with stale chunk cleanup
+- Citations with clickable Notion links
+- "Show full text" button → Slack modal with live Notion content
+- Semantic cache (OU-scoped, 1 hour TTL)
+- Feedback buttons (👍👎)
+- Status command
+- Conversation follow-ups
+- Claude Haiku with XML prompt fencing (prompt injection mitigation)
 - Rate limiting (10 req/min per user)
 - Thread-safe event deduplication
 - Graceful shutdown (signal handling)
+- Parallel sync (3 workers)
 - File lock for concurrent sync protection
-- 31 tests, 4 rounds of code review
-- **Stats: 1553 pages, ~7000 chunks**
+- Docker + docker-compose
+- 35 tests, 4 rounds of code review
+- **Stats: 1553 pages, 26,204 chunks, 15 roots + 2 databases**
 
-## Known Limitations
-- ~0.2% pages inaccessible (Notion "unlinked from parent" + "Only people invited")
-- Incremental sync still does full crawl (saves embedding cost, not API calls)
-- No page-level ACL (root-level only) — by design, see D-017
-
-## How to Run
+## How to Resume
 ```bash
-# Full sync (first time, ~1 hour)
+# Start bot (models download on first run ~3GB)
+.venv/bin/python main.py
+
+# Full resync (if data is stale, ~1 hour)
 .venv/bin/python sync.py --full
 
 # Incremental sync
 .venv/bin/python sync.py
 
-# Start bot
-.venv/bin/python main.py
-
 # Tests
 .venv/bin/pytest -v
-
-# Check access gaps
-PYTHONPATH=. .venv/bin/python scripts/check_access_gaps.py
 ```
+
+## Known Limitations
+- ~0.2% Notion pages inaccessible ("unlinked from parent" permissions)
+- Incremental sync still does full crawl (saves embedding cost, not API calls)
+- No page-level ACL (root-level only)
+- No image support in bot responses
+- Search quality varies — general queries work well, very specific ones may miss

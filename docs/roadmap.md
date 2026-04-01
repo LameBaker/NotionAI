@@ -1,31 +1,32 @@
 # Roadmap
 
 ## Done
-- MVP bot: Slack DM → Google OU → ACL → vector search → rerank → Claude → answer
-- 15 Notion spaces + 2 databases indexed (1553 pages, 7000+ chunks)
-- BGE-M3 embeddings + BGE Reranker
-- Hybrid search (vector + BM25 + RRF fusion)
-- Query rewriting via LLM
-- Citations with Notion links
-- Chunk overlap 10%
-- Security: prompt injection fencing, rate limiting, event dedup, error leak prevention
-- 4 rounds of code review, 31 tests
+- MVP bot with full pipeline (search → ACL → rerank → AI → answer)
+- 15 Notion spaces + 2 databases indexed
+- BGE-M3 + BGE Reranker + hybrid search + query rewriting
+- OU-based boost + archive/department penalties
+- Parent-child chunks + chunk overlap
+- Citations + "Show full text" modal
+- Semantic cache (OU-scoped)
+- Feedback buttons, status command, conversation follow-ups
+- Channel @mention support
+- Parallel sync (3 workers)
+- Docker + docker-compose
+- Security: prompt injection fencing, rate limiting, dedup, error leak prevention
+- 35 tests, 4 rounds of code review
 
-## Next: User Testing
-- Launch bot for 2-3 pilot users
-- Collect feedback on answer quality
-- Fix issues based on real queries
-
-## Next: Operations (DevOps)
-- Cron setup for sync (every 30-60 min)
-- Docker container for deployment
-- Logging/monitoring dashboard
-
-## Future (after real usage data)
-- Parent-child chunk retrieval (small for search, large for context)
-- Overgear abbreviation dictionary
-- Semantic caching for frequent questions
+## If Resuming: Quality Improvements
+- True incremental sync (Notion Search API filter, skip unchanged pages)
 - Fine-tune embeddings with real user queries (need 500+ pairs)
-- Slack @mention in channels (needs ACL strategy for public answers)
-- Notion webhooks for real-time sync (when API exits beta)
-- Database indexing for Release Notes (check with Sasha Kozhevnikov first)
+- Image support (extract image URLs, show in Slack)
+- Better search for vague queries
+
+## If Resuming: Operations
+- Cron setup for sync
+- Monitoring/alerting
+- Hand off to DevOps
+
+## Parked (may not be needed if migrating to ClickUp)
+- Notion webhooks for real-time sync
+- Release Notes database indexing (check with Sasha Kozhevnikov)
+- Slack Canvas integration
