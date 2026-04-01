@@ -118,7 +118,7 @@ class QuestionHandler:
         if self._cache:
             cached = self._cache.get(question)
             if cached:
-                return QuestionResult(answer=cached, sources=[])
+                return QuestionResult(answer=cached["answer"], sources=cached.get("sources", []))
 
         # Retry OU resolution (transient SSL/network errors)
         user_ou = None
@@ -204,9 +204,9 @@ class QuestionHandler:
             log.exception("LLM error")
             return QuestionResult(error="Ошибка при генерации ответа. Попробуйте позже.")
 
-        # Cache the answer
+        # Cache the answer with sources
         if self._cache:
-            self._cache.put(question, answer)
+            self._cache.put(question, answer, sources)
 
         elapsed = time.time() - t0
         log.info("Answered in %.1fs (%d chars, %d sources)", elapsed, len(answer), len(sources))
@@ -340,6 +340,21 @@ def create_bot(env: EnvConfig) -> tuple[App, SocketModeHandler]:
         if not question:
             return
 
+        # Built-in commands
+        if question.lower() in ("status", "статус", "help", "помощь"):
+            chunk_count = vector_store._collection.count()
+            root_count = len(config.roots)
+            cache_count = cache._collection.count() if cache else 0
+            say(
+                f"📊 *NotionAI Status*\n"
+                f"• Roots: {root_count}\n"
+                f"• Chunks indexed: {chunk_count:,}\n"
+                f"• Cached answers: {cache_count}\n"
+                f"• Model: BGE-M3 + BGE Reranker + Claude Haiku\n\n"
+                f"Просто задайте вопрос, и я найду ответ в Notion."
+            )
+            return
+
         user_id = event.get("user", "")
 
         # Rate limit per user
@@ -371,20 +386,6 @@ def create_bot(env: EnvConfig) -> tuple[App, SocketModeHandler]:
         ack()
         user = body.get("user", {}).get("name", "unknown")
         log.info("Feedback: 👎 from %s", user)
-
-    # Status command
-    @app.message(re.compile(r"^(status|статус)$", re.IGNORECASE))
-    def handle_status(message, say):
-        chunk_count = vector_store._collection.count()
-        root_count = len(config.roots)
-        cache_count = cache._collection.count() if cache else 0
-        say(
-            f"📊 *NotionAI Status*\n"
-            f"• Roots: {root_count}\n"
-            f"• Chunks indexed: {chunk_count:,}\n"
-            f"• Cached answers: {cache_count}\n"
-            f"• Model: BGE-M3 + BGE Reranker + Claude Haiku"
-        )
 
     # Handle @mention in channels
     @app.event("app_mention")

@@ -1,6 +1,7 @@
 """Semantic cache: return cached answers for similar questions."""
 from __future__ import annotations
 
+import json
 import logging
 import time
 import threading
@@ -28,14 +29,14 @@ class SemanticCache:
         )
         log.info("Semantic cache initialized (TTL=%ds)", ttl)
 
-    def get(self, query: str) -> str | None:
-        """Check cache for a similar query. Returns cached answer or None."""
+    def get(self, query: str) -> dict | None:
+        """Check cache for a similar query. Returns {answer, sources} or None."""
         with self._lock:
             if self._collection.count() == 0:
                 return None
 
             try:
-                results = self._collection.query(query_texts=[query], n_results=1)
+                results = self._collection.query(query_texts=[query], n_results=1, include=["metadatas", "distances"])
             except Exception:
                 return None
 
@@ -45,31 +46,38 @@ class SemanticCache:
             meta = results["metadatas"][0][0]
             distance = results["distances"][0][0] if results.get("distances") else 1.0
 
-            # Check similarity (cosine distance: 0 = identical, 2 = opposite)
             similarity = 1 - distance
             if similarity < _SIMILARITY_THRESHOLD:
                 return None
 
-            # Check TTL
             cached_at = meta.get("cached_at", 0)
             if time.time() - float(cached_at) > self._ttl:
-                # Expired — delete
                 self._collection.delete(ids=[results["ids"][0][0]])
                 return None
 
             answer = meta.get("answer", "")
-            log.info("Cache HIT (similarity=%.3f): %s", similarity, query[:50])
-            return answer
+            try:
+                sources = json.loads(meta.get("sources_json", "[]"))
+            except Exception:
+                sources = []
 
-    def put(self, query: str, answer: str) -> None:
-        """Cache an answer for a query."""
+            log.info("Cache HIT (similarity=%.3f): %s", similarity, query[:50])
+            return {"answer": answer, "sources": sources}
+
+    def put(self, query: str, answer: str, sources: list[dict] | None = None) -> None:
+        """Cache an answer with sources for a query."""
         with self._lock:
             cache_id = f"cache_{hash(query) & 0xFFFFFFFF}"
             try:
+                sources_json = json.dumps(sources or [], ensure_ascii=False)[:3000]
                 self._collection.upsert(
                     ids=[cache_id],
                     documents=[query],
-                    metadatas=[{"answer": answer[:3000], "cached_at": str(time.time())}],
+                    metadatas=[{
+                        "answer": answer[:3000],
+                        "sources_json": sources_json,
+                        "cached_at": str(time.time()),
+                    }],
                 )
             except Exception:
                 log.debug("Cache put failed", exc_info=True)
